@@ -217,10 +217,10 @@ class TorahReader(tk.Tk):
         # Calculate pixels per second needed to complete scroll during audio duration
         # Subtract a small buffer (2 seconds) from audio length to ensure we don't finish early
         self.pixels_per_second = total_scroll_distance / (self.AUDIO_LENGTH_SECONDS - 2)
-        print(f"Debug: Total lines: {len(self.lines)}")
-        print(f"Debug: Total scroll distance: {total_scroll_distance} pixels")
-        print(f"Debug: Audio duration: {self.AUDIO_LENGTH_SECONDS} seconds")
-        print(f"Debug: Scroll speed: {self.pixels_per_second} pixels/second")
+        #print(f"Debug: Total lines: {len(self.lines)}")
+        #print(f"Debug: Total scroll distance: {total_scroll_distance} pixels")
+        #print(f"Debug: Audio duration: {self.AUDIO_LENGTH_SECONDS} seconds")
+        #print(f"Debug: Scroll speed: {self.pixels_per_second} pixels/second")
 
     def setup_controls(self):
         control_frame = ttk.Frame(self.content_frame)
