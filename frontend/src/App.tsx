@@ -2,7 +2,7 @@
  * Main App Component
  * Leining App - Torah Reading Practice Application
  */
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import './App.css';
 import { HebrewText } from './components/HebrewText';
 import { AudioRecorder } from './components/AudioRecorder';

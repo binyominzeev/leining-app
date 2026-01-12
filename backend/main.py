@@ -71,6 +71,12 @@ class ComparisonResponse(BaseModel):
     transcribed_normalized: str
 
 
+class MarkerCheckRequest(BaseModel):
+    transcribed: str
+    marker_word: str
+    ignore_nikud: bool = True
+
+
 class TranscriptionResponse(BaseModel):
     transcription: str
     language: str
@@ -255,20 +261,18 @@ async def compare_texts(request: ComparisonRequest):
 
 
 @app.post("/api/marker/check")
-async def check_marker(transcribed: str, marker_word: str, ignore_nikud: bool = True):
+async def check_marker(request: MarkerCheckRequest):
     """
     Check if transcribed text has reached a marker word.
     
     Args:
-        transcribed: Transcribed text to check
-        marker_word: Marker word to look for
-        ignore_nikud: Whether to ignore Nikud in comparison
+        request: Marker check request with transcribed text and marker word
     """
-    reached = has_reached_marker(transcribed, marker_word, ignore_nikud)
+    reached = has_reached_marker(request.transcribed, request.marker_word, request.ignore_nikud)
     return {
         "marker_reached": reached,
-        "marker_word": marker_word,
-        "transcribed": transcribed
+        "marker_word": request.marker_word,
+        "transcribed": request.transcribed
     }
 
 
