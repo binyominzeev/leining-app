@@ -1,105 +1,237 @@
 # Leining App - Torah Reading Practice
 
-A Streamlit-based web application to help users practice Torah reading (leining) with real-time speech recognition and feedback.
+A modern, real-time web application to help users practice Torah reading (leining) with speech-to-text feedback, reference audio comparison, and visual cues.
 
-## Features
+## 🌟 Features
 
-- **RTL Hebrew Text Display**: Clean, large font display of Hebrew verses with and without Nikud
-- **Audio Recording**: Live audio capture using streamlit-mic-recorder
-- **Speech-to-Text**: Hebrew transcription using the faster-whisper library
-- **Text Comparison**: Compare your reading with the reference text
-- **Visual Feedback**: Flash animations when reaching important markers (Etnahta, Sof Pasuk)
-- **Customizable**: Configure reference verses and marker words
+- **Real-Time Feedback**: Live speech-to-text transcription as you read Torah verses aloud
+- **Reference Audio Upload**: Upload and compare against professionally read Torah verses
+- **Hebrew Text Processing**: Full support for RTL display and Nikud (vowel marks)
+- **Text Comparison**: Intelligent comparison between your reading and reference text
+- **Visual Feedback**: Flash animations when reaching marker words (Etnahta, Sof Pasuk)
+- **Modern Architecture**: React frontend + FastAPI backend with WebSocket support
 
-## Installation
+## 🏗️ Architecture
 
-1. Clone the repository:
-```bash
-git clone https://github.com/binyominzeev/leining-app.git
-cd leining-app
+This is a monorepo application with two main components:
+
+```
+leining-app/
+├── backend/          # FastAPI server with speech-to-text
+│   ├── main.py
+│   ├── logic.py
+│   ├── requirements.txt
+│   └── README.md
+├── frontend/         # React + TypeScript UI
+│   ├── src/
+│   ├── package.json
+│   └── README.md
+├── app.py           # Legacy Streamlit app (deprecated)
+├── logic.py         # Original logic (reference)
+└── README.md        # This file
 ```
 
-2. Install dependencies:
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Python 3.8+** for the backend
+- **Node.js 18+** for the frontend
+- **npm** or **yarn** package manager
+
+### Backend Setup
+
+1. Navigate to the backend directory:
+```bash
+cd backend
+```
+
+2. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-Note: The `faster-whisper` and `streamlit-mic-recorder` packages are optional. The app will run in simulation mode if they're not available.
-
-## Usage
-
-Run the Streamlit application:
+4. Run the backend server:
 ```bash
-streamlit run app.py
+python main.py
 ```
 
-The application will open in your default web browser at `http://localhost:8501`.
+The API will be available at `http://localhost:8000`
 
-## How to Use
+**API Documentation**: Visit `http://localhost:8000/docs` for interactive Swagger UI
 
-1. **Configure Settings** (in sidebar):
-   - Load the Whisper model (if available)
-   - Set your reference Hebrew verse
+### Frontend Setup
+
+1. Navigate to the frontend directory:
+```bash
+cd frontend
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Run the development server:
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:3000`
+
+## 📖 How to Use
+
+1. **Configure Settings** (in the right sidebar):
+   - Load the Whisper model (start with "tiny" for faster processing)
+   - Set your reference Hebrew verse with Nikud
    - Set the marker word that triggers visual feedback
 
-2. **Practice Reading**:
+2. **Upload Reference Audio** (optional):
+   - Use the reference audio upload section
+   - Provide a verse ID and select an audio file
+
+3. **Practice Reading**:
    - View the Hebrew text displayed in RTL format
    - Click "Start Recording" to record your voice
    - Click "Stop Recording" when done
-   - Click "Transcribe" to convert your speech to text
 
-3. **Get Feedback**:
+4. **Get Feedback**:
    - See your transcription displayed in Hebrew
    - View the similarity score compared to the reference
    - See a flash animation when you reach the marker word
 
-## Project Structure
+## 🔧 Technical Stack
 
-```
-leining-app/
-├── app.py              # Main Streamlit application
-├── logic.py            # Hebrew text processing utilities
-├── style.css           # Custom CSS for RTL and animations
-├── requirements.txt    # Python dependencies
-├── test_logic.py      # Unit tests for logic functions
-└── README.md          # This file
-```
+### Backend
+- **FastAPI**: Modern, fast web framework for Python
+- **Faster-Whisper**: Efficient speech-to-text engine (Hebrew support)
+- **WebSocket**: Real-time audio streaming support
+- **Pydantic**: Data validation and settings management
+- **Uvicorn**: ASGI server for production
 
-## Development
+### Frontend
+- **React 18**: Modern UI library with hooks
+- **TypeScript**: Type-safe development
+- **Vite**: Fast build tool and dev server
+- **Web Audio API**: Browser-based audio recording
+- **CSS3**: RTL support and animations
 
-### Running Tests
+### Original (Legacy)
+- **Streamlit**: Interactive web app framework (see `app.py`)
 
+## 📁 Project Structure
+
+### Backend (`/backend`)
+- `main.py`: FastAPI application with REST and WebSocket endpoints
+- `logic.py`: Hebrew text processing utilities
+- `requirements.txt`: Python dependencies
+- `reference_audio/`: Uploaded reference audio files
+
+### Frontend (`/frontend`)
+- `src/components/`: React components (HebrewText, AudioRecorder, Settings, etc.)
+- `src/hooks/`: Custom React hooks (useAudioRecorder, useWebSocket)
+- `src/App.tsx`: Main application component
+- `src/index.css`: Global styles with RTL support
+
+## 🧪 Testing
+
+### Backend Tests
 ```bash
 python test_logic.py
 ```
 
-### Key Components
+### Frontend Tests
+```bash
+cd frontend
+npm run lint
+```
 
-- **app.py**: Main application with UI, audio recording, and transcription
-- **logic.py**: Helper functions for:
-  - Removing Nikud (vowel marks)
-  - Normalizing Hebrew text
-  - Comparing Hebrew texts
-  - Finding marker words
+## 🌐 API Endpoints
 
-- **style.css**: Custom styling for:
-  - Right-to-left (RTL) text display
-  - Flash animations for visual cues
-  - Hebrew font styling
+### Health & Status
+- `GET /` - Health check
+- `GET /api/health` - Detailed health status
 
-## Dependencies
+### Model Management
+- `POST /api/model/load?model_size=tiny` - Load Whisper model
 
-- `streamlit`: Web application framework
-- `faster-whisper`: Efficient speech-to-text engine
-- `streamlit-mic-recorder`: Audio recording component
-- `numpy`: Numerical processing
+### Audio Processing
+- `POST /api/audio/upload` - Upload reference audio
+- `POST /api/transcribe` - Transcribe audio to Hebrew text
 
-## Notes
+### Text Comparison
+- `POST /api/compare` - Compare Hebrew texts
+- `POST /api/marker/check` - Check if marker word is reached
 
-- The app uses UTF-8 encoding for proper Hebrew character handling
-- Whisper models are downloaded on first use (tiny model ~70MB)
-- The app can run in simulation mode without audio dependencies for testing
+### WebSocket
+- `WS /ws/audio` - Real-time audio streaming
 
-## License
+See `backend/README.md` for detailed API documentation.
+
+## 🎨 Features in Detail
+
+### Hebrew Text Processing
+- **Nikud Removal**: Strip vowel marks for comparison
+- **Normalization**: Whitespace and character normalization
+- **RTL Support**: Proper right-to-left text display
+- **Word Comparison**: Intelligent similarity scoring
+
+### Audio Features
+- **Microphone Recording**: Web Audio API integration
+- **Multiple Formats**: Support for WAV, MP3, WebM
+- **Reference Audio**: Upload and store verse recordings
+- **Forced Alignment**: (Future) Timing alignment with reference
+
+### Visual Feedback
+- **Flash Animations**: Green flash when reaching markers
+- **Pulse Icons**: Animated visual cues
+- **Similarity Scores**: Percentage-based feedback
+- **Real-time Updates**: Live transcription display
+
+## 🔮 Future Enhancements
+
+- [ ] User authentication and progress tracking
+- [ ] Forced alignment between audio and text
+- [ ] Multi-language support beyond Hebrew
+- [ ] Mobile app versions (iOS/Android)
+- [ ] Advanced audio analysis (pitch, tempo)
+- [ ] Community-shared reference recordings
+- [ ] Offline mode with service workers
+
+## 🤝 Contributing
+
+This project is open source and welcomes contributions! Areas for improvement:
+
+- Enhanced Hebrew text analysis
+- Better speech recognition accuracy
+- Additional visual feedback options
+- Performance optimizations
+- Mobile responsiveness
+- Accessibility improvements
+
+## 📝 License
 
 This project is open source and available for use in Torah study and practice.
+
+## 🙏 Acknowledgments
+
+- **Faster-Whisper**: For efficient speech-to-text
+- **FastAPI**: For the modern Python backend
+- **React**: For the interactive frontend
+- **Open Source Community**: For tools and libraries
+
+## 📞 Support
+
+For issues, questions, or suggestions:
+- Open an issue on GitHub
+- Check the documentation in `backend/README.md` and `frontend/README.md`
+
+---
+
+**Built with ❤️ for Torah study and practice**
