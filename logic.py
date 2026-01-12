@@ -80,8 +80,9 @@ def compare_hebrew_texts(reference: str, transcribed: str, ignore_nikud: bool = 
     if not ref_words:
         return exact_match, 0.0
     
-    # Count matching words (simple approach)
-    matches = sum(1 for word in trans_words if word in ref_words)
+    # Count matching words (use set for better performance)
+    ref_words_set = set(ref_words)
+    matches = sum(1 for word in trans_words if word in ref_words_set)
     similarity = matches / len(ref_words) if ref_words else 0.0
     
     return exact_match, similarity

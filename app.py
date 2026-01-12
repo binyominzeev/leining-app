@@ -8,7 +8,7 @@ import numpy as np
 from pathlib import Path
 import io
 import tempfile
-from typing import Optional, TYPE_CHECKING, Any
+from typing import Optional, Any
 
 # Import helper functions
 from logic import (
@@ -48,7 +48,7 @@ def load_css():
     """Load custom CSS for RTL support and animations."""
     css_file = Path(__file__).parent / "style.css"
     if css_file.exists():
-        with open(css_file) as f:
+        with open(css_file, encoding='utf-8') as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     else:
         # Inline basic RTL CSS if file not found
