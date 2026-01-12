@@ -8,7 +8,7 @@ import numpy as np
 from pathlib import Path
 import io
 import tempfile
-from typing import Optional
+from typing import Optional, TYPE_CHECKING, Any
 
 # Import helper functions
 from logic import (
@@ -31,6 +31,7 @@ try:
     WHISPER_AVAILABLE = True
 except ImportError:
     WHISPER_AVAILABLE = False
+    WhisperModel = None  # Define as None when not available
     st.warning("faster-whisper not available. Transcription will be simulated.")
 
 
@@ -90,7 +91,7 @@ if 'whisper_model' not in st.session_state:
     st.session_state.whisper_model = None
 
 
-def initialize_whisper_model(model_size: str = "tiny") -> Optional[WhisperModel]:
+def initialize_whisper_model(model_size: str = "tiny") -> Optional[Any]:
     """
     Initialize the Faster-Whisper model for Hebrew speech-to-text.
     
@@ -100,7 +101,7 @@ def initialize_whisper_model(model_size: str = "tiny") -> Optional[WhisperModel]
     Returns:
         WhisperModel instance or None if unavailable
     """
-    if not WHISPER_AVAILABLE:
+    if not WHISPER_AVAILABLE or WhisperModel is None:
         return None
     
     try:
@@ -113,7 +114,7 @@ def initialize_whisper_model(model_size: str = "tiny") -> Optional[WhisperModel]
         return None
 
 
-def transcribe_audio(audio_bytes: bytes, model: Optional[WhisperModel]) -> str:
+def transcribe_audio(audio_bytes: bytes, model: Optional[Any]) -> str:
     """
     Transcribe audio to Hebrew text using Faster-Whisper.
     
@@ -124,7 +125,7 @@ def transcribe_audio(audio_bytes: bytes, model: Optional[WhisperModel]) -> str:
     Returns:
         Transcribed Hebrew text
     """
-    if not model or not WHISPER_AVAILABLE:
+    if not model or not WHISPER_AVAILABLE or WhisperModel is None:
         # Placeholder/simulation mode
         return "בראשית ברא אלהים"
     
