@@ -1,0 +1,146 @@
+/* RTL Support for Hebrew Text */
+.hebrew-text {
+    direction: rtl;
+    text-align: right;
+    font-family: 'David Libre', 'Frank Ruehl CLM', 'Times New Roman', serif;
+    font-size: 2.5rem;
+    line-height: 1.8;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.hebrew-text-large {
+    direction: rtl;
+    text-align: right;
+    font-family: 'David Libre', 'Frank Ruehl CLM', 'Times New Roman', serif;
+    font-size: 3rem;
+    line-height: 2;
+    padding: 30px;
+    background-color: #ffffff;
+    border: 2px solid #e0e0e0;
+    border-radius: 15px;
+    margin: 20px 0;
+}
+
+.hebrew-text-with-nikud {
+    direction: rtl;
+    text-align: right;
+    font-family: 'David Libre', 'Frank Ruehl CLM', 'Ezra SIL', 'Times New Roman', serif;
+    font-size: 2.5rem;
+    line-height: 2.2;
+    padding: 20px;
+}
+
+.hebrew-text-without-nikud {
+    direction: rtl;
+    text-align: right;
+    font-family: 'David Libre', 'Frank Ruehl CLM', 'Times New Roman', serif;
+    font-size: 2.5rem;
+    line-height: 1.8;
+    padding: 20px;
+}
+
+/* Flash Animation for Musical Signs (Etnahta, Sof Pasuk) */
+@keyframes flash-green {
+    0% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+        background-color: #ffffff;
+    }
+    50% {
+        box-shadow: 0 0 30px 10px rgba(40, 167, 69, 0.8);
+        background-color: #d4edda;
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+        background-color: #ffffff;
+    }
+}
+
+@keyframes pulse-icon {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.3);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.flash-green {
+    animation: flash-green 1s ease-in-out;
+}
+
+.pulse-icon {
+    animation: pulse-icon 0.6s ease-in-out;
+    display: inline-block;
+}
+
+.visual-cue {
+    text-align: center;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.visual-cue-icon {
+    font-size: 4rem;
+    color: #28a745;
+}
+
+/* Container styles */
+.main-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Transcription display */
+.transcription-box {
+    direction: rtl;
+    text-align: right;
+    background-color: #f0f0f0;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    font-family: 'David Libre', 'Frank Ruehl CLM', 'Times New Roman', serif;
+    font-size: 1.5rem;
+    min-height: 60px;
+}
+
+/* Recording indicator */
+.recording-indicator {
+    color: #dc3545;
+    font-weight: bold;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50%, 100% {
+        opacity: 1;
+    }
+    25%, 75% {
+        opacity: 0.5;
+    }
+}
+
+/* Status messages */
+.status-success {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.status-error {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.status-info {
+    color: #17a2b8;
+    font-weight: bold;
+}
