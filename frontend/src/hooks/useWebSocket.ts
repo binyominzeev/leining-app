@@ -71,11 +71,13 @@ export function useWebSocket(url: string): UseWebSocketReturn {
     }
   }, []);
 
-  const sendAudio = useCallback((audioData: ArrayBuffer) => {
+  const sendAudio = useCallback((audioData: ArrayBuffer): boolean => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(audioData);
+      return true;
     } else {
       console.warn('WebSocket is not connected');
+      return false;
     }
   }, []);
 

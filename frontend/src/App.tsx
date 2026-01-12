@@ -8,6 +8,7 @@ import { HebrewText } from './components/HebrewText';
 import { AudioRecorder } from './components/AudioRecorder';
 import { ReferenceAudioUpload } from './components/ReferenceAudioUpload';
 import { Settings } from './components/Settings';
+import { removeNikud } from './utils/hebrewUtils';
 
 function App() {
   // State management
@@ -21,11 +22,6 @@ function App() {
   const [showFlash, setShowFlash] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'info' | 'success' | 'error'; text: string } | null>(null);
-
-  // Remove Nikud from text (client-side helper)
-  const removeNikud = (text: string): string => {
-    return text.replace(/[\u0591-\u05C7]/g, '');
-  };
 
   const handleLoadModel = async () => {
     setStatusMessage({ type: 'info', text: 'Loading model...' });

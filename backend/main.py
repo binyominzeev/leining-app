@@ -83,6 +83,9 @@ class TranscriptionResponse(BaseModel):
     processing_time: float
 
 
+# Global constants
+VALID_MODEL_SIZES = ["tiny", "base", "small", "medium", "large"]
+
 # Global state for Whisper model
 whisper_model: Optional[Any] = None
 reference_audio_dir = Path("./reference_audio")
@@ -141,9 +144,8 @@ async def load_model(model_size: str = "tiny"):
     if not WHISPER_AVAILABLE or WhisperModel is None:
         raise HTTPException(status_code=503, detail="Faster-Whisper not available")
     
-    valid_sizes = ["tiny", "base", "small", "medium", "large"]
-    if model_size not in valid_sizes:
-        raise HTTPException(status_code=400, detail=f"Invalid model size. Must be one of: {valid_sizes}")
+    if model_size not in VALID_MODEL_SIZES:
+        raise HTTPException(status_code=400, detail=f"Invalid model size. Must be one of: {VALID_MODEL_SIZES}")
     
     try:
         whisper_model = WhisperModel(model_size, device="cpu", compute_type="int8")
@@ -212,27 +214,28 @@ async def transcribe_audio(file: UploadFile = File(...)):
             temp_file.write(content)
             temp_path = temp_file.name
         
-        # Transcribe with Whisper
-        segments, info = whisper_model.transcribe(
-            temp_path,
-            language="he",  # Hebrew
-            beam_size=5,
-            word_timestamps=False
-        )
-        
-        # Combine all segments
-        transcription = " ".join([segment.text for segment in segments])
-        
-        # Clean up temp file
-        Path(temp_path).unlink()
-        
-        processing_time = (datetime.now() - start_time).total_seconds()
-        
-        return TranscriptionResponse(
-            transcription=transcription.strip(),
-            language=info.language,
-            processing_time=processing_time
-        )
+        try:
+            # Transcribe with Whisper
+            segments, info = whisper_model.transcribe(
+                temp_path,
+                language="he",  # Hebrew
+                beam_size=5,
+                word_timestamps=False
+            )
+            
+            # Combine all segments
+            transcription = " ".join([segment.text for segment in segments])
+            
+            processing_time = (datetime.now() - start_time).total_seconds()
+            
+            return TranscriptionResponse(
+                transcription=transcription.strip(),
+                language=info.language,
+                processing_time=processing_time
+            )
+        finally:
+            # Clean up temp file
+            Path(temp_path).unlink(missing_ok=True)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transcription error: {str(e)}")
