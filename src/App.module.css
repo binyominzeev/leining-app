@@ -38,7 +38,7 @@
   font-size: 2rem;            /* Increase font size */
   white-space: pre-wrap;      /* Allow wrapping for pre-formatted text */
   word-break: normal;         /* Don't break words in the middle */
-  overflow-wrap: break-word;  /* Wrap long words only at natural break points */
+  overflow-wrap: normal;      /* Don't break words in the middle */
 }
 
 .sidebar {
