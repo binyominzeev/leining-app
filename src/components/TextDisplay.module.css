@@ -1,0 +1,44 @@
+.container {
+  direction: rtl;
+  line-height: 2.6;
+  font-size: 1.6rem;
+  font-family: 'Frank Ruhl Libre', serif;
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+  color: #c8d6e5;
+  word-spacing: 0.3em;
+}
+
+.word {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background 0.15s;
+  display: inline;
+}
+
+.word:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.active {
+  font-weight: 700;
+  color: #e2b714;
+  background: rgba(226, 183, 20, 0.12);
+  border-radius: 4px;
+}
+
+.past {
+  color: #a8dadc;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 1.4rem;
+  color: #555;
+  direction: rtl;
+}
