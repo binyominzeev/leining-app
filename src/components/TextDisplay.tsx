@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 import type { Word } from '../types'
 import styles from './TextDisplay.module.css'
 
@@ -29,25 +29,27 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick }: Pr
         const displayText = isPast || isActive ? word.full : word.plain
 
         return (
-          <span
-            key={word.index}
-            ref={isActive ? activeRef : null}
-            className={[
-              styles.word,
-              isActive ? styles.active : '',
-              isPast ? styles.past : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onClick={() => onWordClick(word.index)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') onWordClick(word.index)
-            }}
-          >
-            {displayText}
-          </span>
+          <Fragment key={word.index}>
+            <span
+              ref={isActive ? activeRef : null}
+              className={[
+                styles.word,
+                isActive ? styles.active : '',
+                isPast ? styles.past : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => onWordClick(word.index)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') onWordClick(word.index)
+              }}
+            >
+              {displayText}
+            </span>
+            {' '}
+          </Fragment>
         )
       })}
     </div>

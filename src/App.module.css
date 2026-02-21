@@ -36,7 +36,7 @@
   display: flex;
   flex-direction: column;
   font-size: 2rem;            /* Increase font size */
-  white-space: pre-wrap;      /* Allow wrapping for pre-formatted text */
+  white-space: normal;        /* Allow line wrapping at word boundaries */
   word-break: normal;         /* Don't break words in the middle */
   overflow-wrap: normal;      /* Don't break words in the middle */
 }
