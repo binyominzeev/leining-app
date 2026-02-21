@@ -4,7 +4,8 @@ import type { Word } from '../types'
  * Strip all niqqud and ta'amim (Unicode range U+0591–U+05C7).
  */
 export function stripDiacritics(text: string): string {
-  return text.replace(/[\u0591-\u05C7]/g, '')
+  // Remove Hebrew diacritics (niqqud and taamim), but keep maqaf (\u05BE)
+  return text.replace(/[\u0591-\u05BD\u05BF-\u05C7]/g, '')
 }
 
 /**
