@@ -1,0 +1,67 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #1a1a2e;
+  color: #e0e0e0;
+}
+
+.header {
+  background: #16213e;
+  border-bottom: 1px solid #0f3460;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  direction: rtl;
+}
+
+.title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #e2b714;
+  font-family: 'Frank Ruhl Libre', serif;
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  direction: rtl;
+}
+
+.textArea {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar {
+  width: 200px;
+  border-right: 1px solid #0f3460;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.loading,
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  font-size: 1.2rem;
+  direction: rtl;
+}
+
+.loading {
+  color: #a8dadc;
+}
+
+.error {
+  color: #e94560;
+}

@@ -1,0 +1,18 @@
+/* Global reset & RTL defaults */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  direction: rtl;
+  font-family: 'Frank Ruhl Libre', 'David', 'Times New Roman', serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  height: 100%;
+}
+
+#root {
+  height: 100%;
+}
