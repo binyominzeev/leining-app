@@ -18,11 +18,26 @@ export function extractTaam(text: string): string | null {
 }
 
 /**
+ * Strip HTML tags and HTML entities from a Sefaria text string,
+ * converting whitespace entities to spaces.
+ */
+export function stripHtml(text: string): string {
+  return text
+    .replace(/&thinsp;/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>]/g, '')
+    .replace(/&#?[a-zA-Z0-9]+;/g, '')
+}
+
+/**
  * Parse a Sefaria verse text (string or array of strings) into Word objects.
  * The input should be the fully vocalized Hebrew text.
  */
 export function parseVerseText(verseText: string | string[]): Word[] {
-  const raw = Array.isArray(verseText) ? verseText.join(' ') : verseText
+  const raw = Array.isArray(verseText)
+    ? verseText.map(stripHtml).join(' ')
+    : stripHtml(verseText)
 
   // Split by whitespace – preserving the original tokens (fully vocalized)
   const tokens = raw.split(/\s+/).filter((t) => t.length > 0)
