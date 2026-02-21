@@ -15,7 +15,8 @@
   font-size: 1.8rem;
   font-family: 'Frank Ruhl Libre', serif;
   color: #e2b714;
-  min-height: 2.5rem;
+  line-height: 3;
+  min-height: 3em;
   text-align: center;
   direction: rtl;
 }
