@@ -1,3 +1,19 @@
+@font-face {
+  font-family: 'Taamey Frank CLM';
+  src: url('/assets/fonts/TaameyFrankCLM-Medium.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mekorot-Rashi';
+  src: url('/assets/fonts/Mekorot-Rashi.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 .container {
   direction: rtl;
   line-height: 2.6;
@@ -11,7 +27,7 @@
 }
 
 .rashiFont {
-  font-family: 'Keter YG', 'Rashi', serif;
+  font-family: 'Mekorot-Rashi', serif;
 }
 
 .normalFont {

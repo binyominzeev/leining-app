@@ -1,3 +1,19 @@
+@font-face {
+  font-family: 'Taamey Frank CLM';
+  src: url('/assets/fonts/TaameyFrankCLM-Medium.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mekorot-Rashi';
+  src: url('/assets/fonts/Mekorot-Rashi.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 .panel {
   display: flex;
   flex-direction: column;
@@ -34,7 +50,7 @@
 
 .wordDisplay {
   direction: rtl;
-  font-family: 'Keter YG', 'Rashi', serif;
+  font-family: 'Mekorot-Rashi', serif;
   font-size: 1.4rem;
   line-height: 2.2;
   color: #c8d6e5;
