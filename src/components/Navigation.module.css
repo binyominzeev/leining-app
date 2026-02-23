@@ -1,6 +1,6 @@
 .nav {
-  background: #16213e;
-  border-bottom: 1px solid #0f3460;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
   padding: 10px 16px;
   display: flex;
   flex-wrap: wrap;
@@ -16,9 +16,9 @@
 
 .modeToggle button {
   padding: 6px 12px;
-  border: 1px solid #0f3460;
+  border: 1px solid var(--border-color);
   background: transparent;
-  color: #a8dadc;
+  color: var(--text-accent);
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
@@ -27,8 +27,8 @@
 
 .modeToggle button.active,
 .modeToggle button:hover {
-  background: #0f3460;
-  color: #e0e0e0;
+  background: var(--btn-active-bg);
+  color: var(--text-primary);
 }
 
 .manualForm,
@@ -40,9 +40,9 @@
 }
 
 .select {
-  background: #0f3460;
-  color: #e0e0e0;
-  border: 1px solid #1a4a8a;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   padding: 6px 8px;
   font-size: 0.9rem;
@@ -53,9 +53,9 @@
 
 .verseInput {
   width: 56px;
-  background: #0f3460;
-  color: #e0e0e0;
-  border: 1px solid #1a4a8a;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   padding: 6px 8px;
   font-size: 0.9rem;
@@ -63,12 +63,12 @@
 }
 
 .sep {
-  color: #666;
+  color: var(--text-sep);
 }
 
 .loadBtn {
   padding: 6px 16px;
-  background: #e94560;
+  background: var(--btn-primary);
   color: white;
   border: none;
   border-radius: 4px;
@@ -78,14 +78,14 @@
 }
 
 .loadBtn:hover {
-  background: #c73652;
+  background: var(--btn-primary-hover);
 }
 
 .rashiCheckbox {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #a8dadc;
+  color: var(--text-accent);
   font-size: 0.9rem;
   cursor: pointer;
   user-select: none;
@@ -95,22 +95,22 @@
   cursor: pointer;
   width: 15px;
   height: 15px;
-  accent-color: #e94560;
+  accent-color: var(--btn-primary);
 }
 
 .rashiSizeLabel {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #a8dadc;
+  color: var(--text-accent);
   font-size: 0.9rem;
 }
 
 .rashiSizeInput {
   width: 56px;
-  background: #0f3460;
-  color: #e0e0e0;
-  border: 1px solid #1a4a8a;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   padding: 4px 6px;
   font-size: 0.9rem;

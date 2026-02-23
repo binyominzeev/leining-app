@@ -12,6 +12,8 @@ import TaamPanel from './components/TaamPanel'
 import RashiTextPanel from './components/RashiTextPanel'
 import styles from './App.module.css'
 
+const THEME_STORAGE_KEY = 'leining-theme'
+
 export default function App() {
   const [words, setWords] = useState<Word[]>([])
   const [loading, setLoading] = useState(false)
@@ -21,6 +23,18 @@ export default function App() {
   const [useRashiFont, setUseRashiFont] = useState(false)
   const [rashiPracticeText, setRashiPracticeText] = useState('')
   const [rashiFontSize, setRashiFontSize] = useState(2.6)
+  const [isLightTheme, setIsLightTheme] = useState(() => {
+    return localStorage.getItem(THEME_STORAGE_KEY) === 'light'
+  })
+
+  useEffect(() => {
+    if (isLightTheme) {
+      document.documentElement.setAttribute('data-theme', 'light')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+    }
+    localStorage.setItem(THEME_STORAGE_KEY, isLightTheme ? 'light' : 'dark')
+  }, [isLightTheme])
 
   const rashiWords = useMemo(() => {
     if (!rashiPracticeText.trim()) return []
@@ -183,6 +197,15 @@ export default function App() {
     <div className={styles.app}>
       <header className={styles.header}>
         <h1 className={styles.title}>מאמן קריאת תורה</h1>
+        <label className={styles.themeToggle}>
+          <span>☀️</span>
+          <input
+            type="checkbox"
+            checked={isLightTheme}
+            onChange={(e) => setIsLightTheme(e.target.checked)}
+            aria-label="Toggle light theme"
+          />
+        </label>
       </header>
 
       <Navigation

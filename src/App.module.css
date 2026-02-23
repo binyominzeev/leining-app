@@ -2,24 +2,68 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #1a1a2e;
-  color: #e0e0e0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .header {
-  background: #16213e;
-  border-bottom: 1px solid #0f3460;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
   padding: 10px 20px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   direction: rtl;
 }
 
 .title {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #e2b714;
+  color: var(--text-gold);
   font-family: 'Taamey Frank CLM', serif;
+}
+
+.themeToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-accent);
+  font-size: 0.85rem;
+  direction: ltr;
+}
+
+.themeToggle input[type='checkbox'] {
+  appearance: none;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--border-color);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.themeToggle input[type='checkbox']::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-accent);
+  transition: transform 0.2s;
+}
+
+.themeToggle input[type='checkbox']:checked {
+  background: var(--btn-primary);
+}
+
+.themeToggle input[type='checkbox']:checked::after {
+  transform: translateX(16px);
 }
 
 .main {
@@ -43,7 +87,7 @@
 
 .sidebar {
   width: 200px;
-  border-right: 1px solid #0f3460;
+  border-right: 1px solid var(--border-color);
   padding: 16px 12px;
   display: flex;
   flex-direction: column;
@@ -63,9 +107,9 @@
 }
 
 .loading {
-  color: #a8dadc;
+  color: var(--loading-color);
 }
 
 .error {
-  color: #e94560;
+  color: var(--error-color);
 }
