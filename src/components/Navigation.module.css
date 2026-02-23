@@ -80,3 +80,20 @@
 .loadBtn:hover {
   background: #c73652;
 }
+
+.rashiCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #a8dadc;
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rashiCheckbox input[type='checkbox'] {
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+  accent-color: #e94560;
+}

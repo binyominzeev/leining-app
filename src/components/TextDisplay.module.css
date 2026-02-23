@@ -10,6 +10,14 @@
   word-spacing: 0.3em;
 }
 
+.rashiFont {
+  font-family: 'Keter YG', 'Rashi', serif;
+}
+
+.normalFont {
+  font-family: 'Taamey Frank CLM', serif;
+}
+
 .word {
   cursor: pointer;
   padding: 2px 4px;
