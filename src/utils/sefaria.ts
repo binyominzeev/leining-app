@@ -1,7 +1,7 @@
 const BASE_URL = 'https://www.sefaria.org/api'
 
 export type SefariaTextResponse = {
-  he: string | string[]
+  he: string | string[] | string[][]
   heVersionTitle?: string
   title?: string
   book?: string

@@ -1,6 +1,63 @@
 import type { Word } from '../types'
 
 /**
+ * Parse a Sefaria API 'he' field (string, string[], or string[][]) into Word
+ * objects with per-word chapter/verse metadata preserved.
+ *
+ * @param he      - The raw Sefaria 'he' value
+ * @param startChapter - Chapter number of the first verse in the range
+ * @param startVerse   - Verse number of the first verse in the range
+ */
+export function parseSefariaResponse(
+  he: string | string[] | string[][],
+  startChapter: number,
+  startVerse: number,
+): Word[] {
+  const words: Word[] = []
+  let wordIndex = 0
+
+  function addWords(text: string, chapter: number, verse: number) {
+    if (!text || typeof text !== 'string') return
+    const raw = stripHtml(text)
+    const tokens = raw.split(/\s+/).filter((t) => t.length > 0)
+    for (const full of tokens) {
+      words.push({
+        index: wordIndex++,
+        plain: stripDiacritics(full),
+        full,
+        taam: extractTaam(full),
+        revealed: false,
+        chapter,
+        verse,
+      })
+    }
+  }
+
+  if (typeof he === 'string') {
+    addWords(he, startChapter, startVerse)
+  } else if (Array.isArray(he)) {
+    if (he.length === 0) return []
+    if (typeof he[0] === 'string') {
+      // Array of verse strings within a single chapter
+      ;(he as string[]).forEach((verseText, vi) => {
+        addWords(verseText, startChapter, startVerse + vi)
+      })
+    } else {
+      // Nested array: outer index = chapter offset, inner index = verse offset
+      ;(he as string[][]).forEach((chapterVerses, ci) => {
+        // Only the first chapter group starts at startVerse; the rest start at 1
+        const verseStart = ci === 0 ? startVerse : 1
+        chapterVerses.forEach((verseText, vi) => {
+          addWords(verseText, startChapter + ci, verseStart + vi)
+        })
+      })
+    }
+  }
+
+  return words
+}
+
+/**
  * Strip all niqqud and ta'amim (Unicode range U+0591–U+05C7).
  */
 export function stripDiacritics(text: string): string {

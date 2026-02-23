@@ -4,6 +4,8 @@ export type Word = {
   full: string
   taam: string | null
   revealed: boolean
+  chapter?: number
+  verse?: number
 }
 
 export type PlaybackState = {
