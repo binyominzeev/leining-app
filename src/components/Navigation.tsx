@@ -3,7 +3,7 @@ import { TANACH_BOOKS, STATIC_PARASHOT, fetchParashot, type Parasha } from '../u
 import styles from './Navigation.module.css'
 
 type Props = {
-  onLoad: (ref: string, book: string, chapter: number, startVerse: number) => void
+  onLoad: (ref: string, book: string, chapter: number, startVerse: number, parashaName?: string) => void
   useRashiFont: boolean
   onRashiFontChange: (value: boolean) => void
   rashiFontSize: number
@@ -44,7 +44,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
     const pBook = match ? match[1] : p.book
     const pChapter = match ? parseInt(match[2]) : 1
     const pVerse = match ? parseInt(match[3]) : 1
-    onLoad(p.ref, pBook, pChapter, pVerse)
+    onLoad(p.ref, pBook, pChapter, pVerse, p.en)
   }
 
   return (
