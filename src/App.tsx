@@ -91,6 +91,15 @@ export default function App() {
   const currentWord = words[currentWordIndex] ?? null
   const isRashiMode = useRashiFont && rashiWords.length > 0
 
+  // Update browser tab title to reflect current position
+  useEffect(() => {
+    if (currentWord?.chapter && currentWord?.verse && bookInfo.book) {
+      document.title = `Leining App – ${bookInfo.book} ${currentWord.chapter}:${currentWord.verse}`
+    } else {
+      document.title = 'Leining App'
+    }
+  }, [currentWord, bookInfo.book])
+
   const loadText = useCallback(async (ref: string, book: string, chapter: number, startVerse: number, parashaName?: string): Promise<Word[] | null> => {
     setLoading(true)
     setError(null)
