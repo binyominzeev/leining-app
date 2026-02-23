@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import type { Word } from './types'
 import { parseVerseText } from './utils/hebrew'
 import { fetchSefariaText } from './utils/sefaria'
@@ -18,6 +18,18 @@ export default function App() {
   const [bookInfo, setBookInfo] = useState({ book: '', chapter: 1, startVerse: 1 })
   const [useRashiFont, setUseRashiFont] = useState(false)
   const [rashiPracticeText, setRashiPracticeText] = useState('')
+  const [rashiFontSize, setRashiFontSize] = useState(2.6)
+  const [rashiCurrentWordIndex, setRashiCurrentWordIndex] = useState(0)
+
+  const rashiWords = useMemo(() => {
+    if (!rashiPracticeText.trim()) return []
+    return parseVerseText(rashiPracticeText)
+  }, [rashiPracticeText])
+
+  // Reset Rashi word index when practice text changes
+  useEffect(() => {
+    setRashiCurrentWordIndex(0)
+  }, [rashiPracticeText])
 
   const handleWordChange = useCallback((index: number) => {
     setWords((prev) =>
@@ -84,6 +96,10 @@ export default function App() {
     setCurrentWordIndex(index)
   }, [setCurrentWordIndex])
 
+  const handleRashiWordClick = useCallback((index: number) => {
+    setRashiCurrentWordIndex(index)
+  }, [])
+
   return (
     <div className={styles.app}>
       <header className={styles.header}>
@@ -94,6 +110,8 @@ export default function App() {
         onLoad={loadText}
         useRashiFont={useRashiFont}
         onRashiFontChange={setUseRashiFont}
+        rashiFontSize={rashiFontSize}
+        onRashiFontSizeChange={setRashiFontSize}
       />
 
       <div className={styles.main}>
@@ -101,12 +119,22 @@ export default function App() {
           {loading && <div className={styles.loading}>טוען...</div>}
           {error && <div className={styles.error}>{error}</div>}
           {!loading && !error && (
-            <TextDisplay
-              words={words}
-              currentWordIndex={currentWordIndex}
-              onWordClick={handleWordClick}
-              useRashiFont={useRashiFont}
-            />
+            useRashiFont && rashiWords.length > 0 ? (
+              <TextDisplay
+                words={rashiWords}
+                currentWordIndex={rashiCurrentWordIndex}
+                onWordClick={handleRashiWordClick}
+                useRashiFont={true}
+                fontSize={`${rashiFontSize}rem`}
+              />
+            ) : (
+              <TextDisplay
+                words={words}
+                currentWordIndex={currentWordIndex}
+                onWordClick={handleWordClick}
+                useRashiFont={useRashiFont}
+              />
+            )
           )}
         </div>
 

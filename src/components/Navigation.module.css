@@ -97,3 +97,22 @@
   height: 15px;
   accent-color: #e94560;
 }
+
+.rashiSizeLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #a8dadc;
+  font-size: 0.9rem;
+}
+
+.rashiSizeInput {
+  width: 56px;
+  background: #0f3460;
+  color: #e0e0e0;
+  border: 1px solid #1a4a8a;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 0.9rem;
+  text-align: center;
+}

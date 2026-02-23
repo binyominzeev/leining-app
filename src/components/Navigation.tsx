@@ -6,11 +6,13 @@ type Props = {
   onLoad: (ref: string, book: string, chapter: number, startVerse: number) => void
   useRashiFont: boolean
   onRashiFontChange: (value: boolean) => void
+  rashiFontSize: number
+  onRashiFontSizeChange: (size: number) => void
 }
 
 type Mode = 'manual' | 'parasha'
 
-export default function Navigation({ onLoad, useRashiFont, onRashiFontChange }: Props) {
+export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange }: Props) {
   const [mode, setMode] = useState<Mode>('manual')
   const [book, setBook] = useState('Genesis')
   const [chapter, setChapter] = useState(1)
@@ -134,6 +136,21 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange }: 
         />
         פונט רש״י
       </label>
+      {useRashiFont && (
+        <label className={styles.rashiSizeLabel}>
+          גודל:
+          <input
+            type="number"
+            min={1.5}
+            max={6}
+            step={0.1}
+            value={rashiFontSize}
+            onChange={(e) => onRashiFontSizeChange(Number(e.target.value))}
+            className={styles.rashiSizeInput}
+          />
+          rem
+        </label>
+      )}
     </div>
   )
 }
