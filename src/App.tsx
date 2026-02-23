@@ -8,6 +8,7 @@ import Navigation from './components/Navigation'
 import TextDisplay from './components/TextDisplay'
 import Controls from './components/Controls'
 import TaamPanel from './components/TaamPanel'
+import RashiTextPanel from './components/RashiTextPanel'
 import styles from './App.module.css'
 
 export default function App() {
@@ -15,6 +16,8 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [bookInfo, setBookInfo] = useState({ book: '', chapter: 1, startVerse: 1 })
+  const [useRashiFont, setUseRashiFont] = useState(false)
+  const [rashiPracticeText, setRashiPracticeText] = useState('')
 
   const handleWordChange = useCallback((index: number) => {
     setWords((prev) =>
@@ -87,7 +90,11 @@ export default function App() {
         <h1 className={styles.title}>מאמן קריאת תורה</h1>
       </header>
 
-      <Navigation onLoad={loadText} />
+      <Navigation
+        onLoad={loadText}
+        useRashiFont={useRashiFont}
+        onRashiFontChange={setUseRashiFont}
+      />
 
       <div className={styles.main}>
         <div className={styles.textArea}>
@@ -98,12 +105,19 @@ export default function App() {
               words={words}
               currentWordIndex={currentWordIndex}
               onWordClick={handleWordClick}
+              useRashiFont={useRashiFont}
             />
           )}
         </div>
 
         <aside className={styles.sidebar}>
           <TaamPanel word={currentWord} />
+          {useRashiFont && (
+            <RashiTextPanel
+              text={rashiPracticeText}
+              onTextChange={setRashiPracticeText}
+            />
+          )}
         </aside>
       </div>
 

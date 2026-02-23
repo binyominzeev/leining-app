@@ -6,9 +6,10 @@ type Props = {
   words: Word[]
   currentWordIndex: number
   onWordClick: (index: number) => void
+  useRashiFont?: boolean
 }
 
-export default function TextDisplay({ words, currentWordIndex, onWordClick }: Props) {
+export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont }: Props) {
   const activeRef = useRef<HTMLSpanElement | null>(null)
 
   // Autoscroll: keep active word visible
@@ -21,7 +22,7 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick }: Pr
   }
 
   return (
-    <div className={styles.container} dir="rtl">
+    <div className={[styles.container, useRashiFont ? styles.rashiFont : ''].filter(Boolean).join(' ')} dir="rtl">
       {words.map((word) => {
         const isActive = word.index === currentWordIndex
         const isPast = word.index < currentWordIndex
@@ -36,6 +37,7 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick }: Pr
                 styles.word,
                 isActive ? styles.active : '',
                 isPast ? styles.past : '',
+                isActive && useRashiFont ? styles.normalFont : '',
               ]
                 .filter(Boolean)
                 .join(' ')}

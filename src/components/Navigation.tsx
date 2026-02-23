@@ -4,11 +4,13 @@ import styles from './Navigation.module.css'
 
 type Props = {
   onLoad: (ref: string, book: string, chapter: number, startVerse: number) => void
+  useRashiFont: boolean
+  onRashiFontChange: (value: boolean) => void
 }
 
 type Mode = 'manual' | 'parasha'
 
-export default function Navigation({ onLoad }: Props) {
+export default function Navigation({ onLoad, useRashiFont, onRashiFontChange }: Props) {
   const [mode, setMode] = useState<Mode>('manual')
   const [book, setBook] = useState('Genesis')
   const [chapter, setChapter] = useState(1)
@@ -123,6 +125,15 @@ export default function Navigation({ onLoad }: Props) {
           </button>
         </div>
       )}
+
+      <label className={styles.rashiCheckbox}>
+        <input
+          type="checkbox"
+          checked={useRashiFont}
+          onChange={(e) => onRashiFontChange(e.target.checked)}
+        />
+        פונט רש״י
+      </label>
     </div>
   )
 }
