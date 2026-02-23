@@ -19,17 +19,30 @@ export default function App() {
   const [useRashiFont, setUseRashiFont] = useState(false)
   const [rashiPracticeText, setRashiPracticeText] = useState('')
   const [rashiFontSize, setRashiFontSize] = useState(2.6)
-  const [rashiCurrentWordIndex, setRashiCurrentWordIndex] = useState(0)
 
   const rashiWords = useMemo(() => {
     if (!rashiPracticeText.trim()) return []
     return parseVerseText(rashiPracticeText)
   }, [rashiPracticeText])
 
+  const handleRashiWordChange = useCallback((_index: number) => {
+    // no-op: Rashi practice doesn't need to persist or reveal words
+  }, [])
+
+  const {
+    currentWordIndex: rashiCurrentWordIndex,
+    isPlaying: rashiIsPlaying,
+    speed: rashiSpeed,
+    setCurrentWordIndex: setRashiCurrentWordIndex,
+    setSpeed: setRashiSpeed,
+    play: rashiPlay,
+    pause: rashiPause,
+  } = usePlayback({ words: rashiWords, speed: 800, onWordChange: handleRashiWordChange })
+
   // Reset Rashi word index when practice text changes
   useEffect(() => {
     setRashiCurrentWordIndex(0)
-  }, [rashiPracticeText])
+  }, [rashiPracticeText, setRashiCurrentWordIndex])
 
   const handleWordChange = useCallback((index: number) => {
     setWords((prev) =>
@@ -50,6 +63,7 @@ export default function App() {
     usePlayback({ words, speed: 800, onWordChange: handleWordChange })
 
   const currentWord = words[currentWordIndex] ?? null
+  const isRashiMode = useRashiFont && rashiWords.length > 0
 
   const loadText = useCallback(async (ref: string, book: string, chapter: number, startVerse: number) => {
     setLoading(true)
@@ -98,7 +112,7 @@ export default function App() {
 
   const handleRashiWordClick = useCallback((index: number) => {
     setRashiCurrentWordIndex(index)
-  }, [])
+  }, [setRashiCurrentWordIndex])
 
   return (
     <div className={styles.app}>
@@ -119,13 +133,14 @@ export default function App() {
           {loading && <div className={styles.loading}>טוען...</div>}
           {error && <div className={styles.error}>{error}</div>}
           {!loading && !error && (
-            useRashiFont && rashiWords.length > 0 ? (
+            isRashiMode ? (
               <TextDisplay
                 words={rashiWords}
                 currentWordIndex={rashiCurrentWordIndex}
                 onWordClick={handleRashiWordClick}
                 useRashiFont={true}
                 fontSize={`${rashiFontSize}rem`}
+                rashiPractice={true}
               />
             ) : (
               <TextDisplay
@@ -150,11 +165,11 @@ export default function App() {
       </div>
 
       <Controls
-        isPlaying={isPlaying}
-        speed={speed}
-        onPlay={play}
-        onPause={pause}
-        onSpeedChange={setSpeed}
+        isPlaying={isRashiMode ? rashiIsPlaying : isPlaying}
+        speed={isRashiMode ? rashiSpeed : speed}
+        onPlay={isRashiMode ? rashiPlay : play}
+        onPause={isRashiMode ? rashiPause : pause}
+        onSpeedChange={isRashiMode ? setRashiSpeed : setSpeed}
       />
     </div>
   )
