@@ -17,7 +17,6 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
   const [book, setBook] = useState('Genesis')
   const [chapter, setChapter] = useState(1)
   const [startVerse, setStartVerse] = useState(1)
-  const [endVerse, setEndVerse] = useState(10)
   const [parashot, setParashot] = useState<Parasha[]>(STATIC_PARASHOT)
   const [selectedParasha, setSelectedParasha] = useState(STATIC_PARASHOT[0].ref)
 
@@ -31,7 +30,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
   const maxChapters = selectedBook?.chapters ?? 1
 
   const handleManualLoad = () => {
-    const ref = `${book} ${chapter}:${startVerse}-${endVerse}`
+    const ref = `${book} ${chapter}`
     onLoad(ref, book, chapter, startVerse)
   }
 
@@ -68,7 +67,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
         <div className={styles.manualForm}>
           <select
             value={book}
-            onChange={(e) => { setBook(e.target.value); setChapter(1); setStartVerse(1); setEndVerse(10) }}
+            onChange={(e) => { setBook(e.target.value); setChapter(1); setStartVerse(1) }}
             className={styles.select}
           >
             {TANACH_BOOKS.map((b) => (
@@ -79,7 +78,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
           </select>
           <select
             value={chapter}
-            onChange={(e) => { setChapter(Number(e.target.value)); setStartVerse(1); setEndVerse(10) }}
+            onChange={(e) => { setChapter(Number(e.target.value)); setStartVerse(1) }}
             className={styles.select}
           >
             {Array.from({ length: maxChapters }, (_, i) => i + 1).map((c) => (
@@ -94,16 +93,6 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
             onChange={(e) => setStartVerse(Number(e.target.value))}
             className={styles.verseInput}
             placeholder="מ"
-          />
-          <span className={styles.sep}>—</span>
-          <input
-            type="number"
-            min={1}
-            max={999}
-            value={endVerse}
-            onChange={(e) => setEndVerse(Number(e.target.value))}
-            className={styles.verseInput}
-            placeholder="עד"
           />
           <button className={styles.loadBtn} onClick={handleManualLoad}>
             טען
