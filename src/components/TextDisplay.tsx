@@ -8,9 +8,10 @@ type Props = {
   onWordClick: (index: number) => void
   useRashiFont?: boolean
   fontSize?: string
+  rashiPractice?: boolean
 }
 
-export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize }: Props) {
+export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize, rashiPractice }: Props) {
   const activeRef = useRef<HTMLSpanElement | null>(null)
 
   // Autoscroll: keep active word visible
@@ -28,7 +29,9 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
         const isActive = word.index === currentWordIndex
         const isPast = word.index < currentWordIndex
 
-        const displayText = isPast || isActive ? word.full : word.plain
+        const displayText = rashiPractice
+          ? (isActive ? word.full : word.plain)
+          : (isPast || isActive ? word.full : word.plain)
 
         return (
           <Fragment key={word.index}>
