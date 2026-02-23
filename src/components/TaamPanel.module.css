@@ -1,6 +1,6 @@
 .panel {
-  background: #16213e;
-  border: 1px solid #0f3460;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -14,7 +14,7 @@
 .wordDisplay {
   font-size: 1.8rem;
   font-family: 'Taamey Frank CLM', serif;
-  color: #e2b714;
+  color: var(--text-gold);
   line-height: 3;
   min-height: 3em;
   text-align: center;
@@ -41,12 +41,12 @@
 
 .taamChar {
   font-size: 3rem;
-  color: #a8dadc;
+  color: var(--text-accent);
 }
 
 .taamName {
   font-size: 1rem;
-  color: #a8dadc;
+  color: var(--text-accent);
   direction: rtl;
   text-align: center;
 }
