@@ -255,6 +255,8 @@ export default function App() {
       <Controls
         isPlaying={isRashiMode ? rashiIsPlaying : isPlaying}
         speed={isRashiMode ? rashiSpeed : speed}
+        wordCount={isRashiMode ? rashiWords.length : words.length}
+        currentWordIndex={isRashiMode ? rashiCurrentWordIndex : currentWordIndex}
         onPlay={isRashiMode ? rashiPlay : play}
         onPause={isRashiMode ? rashiPause : pause}
         onSpeedChange={isRashiMode ? setRashiSpeed : setSpeed}
