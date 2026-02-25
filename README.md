@@ -1,4 +1,4 @@
-# מאמן קריאת תורה — Torah Reading Trainer
+# Leining App
 
 A web app for practising Torah reading (leining) with cantillation marks (ta'amim / trop).
 
