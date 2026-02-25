@@ -12,11 +12,13 @@ type Props = {
   onSpeedChange: (speed: number) => void
 }
 
-function formatTime(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000)
+function formatTime(ms: number, isNegative: boolean = false): string {
+  const totalSeconds = Math.floor(Math.abs(ms) / 1000)
   const minutes = Math.floor(totalSeconds / 60)
   const seconds = totalSeconds % 60
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`
+  const sign = isNegative ? '\u202D-\u202C' : ''
+  return `\u202D${sign}${timeString}\u202C`
 }
 
 export default function Controls({ isPlaying, speed, wordCount, currentWordIndex, onPlay, onPause, onSpeedChange }: Props) {
@@ -28,7 +30,7 @@ export default function Controls({ isPlaying, speed, wordCount, currentWordIndex
   const remainingMs = totalMs - elapsedMs
 
   const timeLabel = showRemaining
-    ? `${formatTime(remainingMs)} / ${formatTime(totalMs)}`
+    ? `${formatTime(remainingMs, true)} / ${formatTime(totalMs)}`
     : `${formatTime(elapsedMs)} / ${formatTime(totalMs)}`
 
   return (
