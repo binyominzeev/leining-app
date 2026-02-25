@@ -35,21 +35,33 @@
   flex: 1;
 }
 
-.speedLabel {
-  font-size: 0.9rem;
-  color: var(--text-accent);
-  white-space: nowrap;
-}
-
 .slider {
   flex: 1;
   accent-color: var(--btn-primary);
   cursor: pointer;
 }
 
-.speedValue {
+.speedInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 80px;
+  gap: 2px;
+}
+
+.timeDisplay {
   font-size: 0.8rem;
   color: var(--text-dim);
-  min-width: 60px;
-  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.timeDisplay:hover {
+  color: var(--text-accent);
+}
+
+.wpmDisplay {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  white-space: nowrap;
 }
