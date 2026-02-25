@@ -1,6 +1,6 @@
 // Configurable speed limits for the playback slider (in words per minute)
-export const MIN_WPM = 30
-export const MAX_WPM = 200
+export const MIN_WPM = 10
+export const MAX_WPM = 180
 
 /** Convert words-per-minute to milliseconds-per-word */
 export function wpmToMs(wpm: number): number {
