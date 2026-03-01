@@ -297,13 +297,6 @@ export default function App() {
               />
             ) : (
               <>
-                {hasPrevChapter && (
-                  <div className={styles.chapterNav}>
-                    <button className={styles.chapterNavBtn} onClick={handlePrevChapter}>
-                      ◀ פרק קודם
-                    </button>
-                  </div>
-                )}
                 <TextDisplay
                   words={words}
                   currentWordIndex={currentWordIndex}
@@ -312,14 +305,17 @@ export default function App() {
                   bookName={bookInfo.book}
                   highlightedWords={highlightedWords}
                   onToggleHighlight={handleToggleHighlight}
-                />
-                {hasNextChapter && (
-                  <div className={styles.chapterNav}>
+                  prevNav={hasPrevChapter ? (
+                    <button className={styles.chapterNavBtn} onClick={handlePrevChapter}>
+                      ◀ פרק קודם
+                    </button>
+                  ) : undefined}
+                  nextNav={hasNextChapter ? (
                     <button className={styles.chapterNavBtn} onClick={handleNextChapter}>
                       פרק הבא ▶
                     </button>
-                  </div>
-                )}
+                  ) : undefined}
+                />
               </>
             )
           )}

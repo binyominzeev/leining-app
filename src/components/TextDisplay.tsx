@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef } from 'react'
+import type React from 'react'
 import type { Word } from '../types'
 import styles from './TextDisplay.module.css'
 
@@ -12,9 +13,11 @@ type Props = {
   bookName?: string
   highlightedWords?: Set<string>
   onToggleHighlight?: (wordKey: string) => void
+  prevNav?: React.ReactNode
+  nextNav?: React.ReactNode
 }
 
-export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize, rashiPractice, bookName, highlightedWords, onToggleHighlight }: Props) {
+export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize, rashiPractice, bookName, highlightedWords, onToggleHighlight, prevNav, nextNav }: Props) {
   const activeRef = useRef<HTMLSpanElement | null>(null)
 
   // Autoscroll: keep active word visible
@@ -42,6 +45,7 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
 
   return (
     <div className={[styles.container, useRashiFont ? styles.rashiFont : ''].filter(Boolean).join(' ')} style={fontSize ? { fontSize } : undefined} dir="rtl">
+      {prevNav}
       {words.map((word) => {
         // Render paragraph markers as visual breaks
         if (word.breakType === 'petuchah') {
@@ -94,6 +98,7 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
           </Fragment>
         )
       })}
+      {nextNav}
     </div>
   )
 }
