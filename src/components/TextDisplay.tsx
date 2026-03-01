@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from 'react'
+import { Fragment, useEffect, useMemo, useRef } from 'react'
 import type { Word } from '../types'
 import styles from './TextDisplay.module.css'
 
@@ -9,15 +9,32 @@ type Props = {
   useRashiFont?: boolean
   fontSize?: string
   rashiPractice?: boolean
+  bookName?: string
+  highlightedWords?: Set<string>
+  onToggleHighlight?: (wordKey: string) => void
 }
 
-export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize, rashiPractice }: Props) {
+export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize, rashiPractice, bookName, highlightedWords, onToggleHighlight }: Props) {
   const activeRef = useRef<HTMLSpanElement | null>(null)
 
   // Autoscroll: keep active word visible
   useEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [currentWordIndex])
+
+  // Precompute each word's position within its verse for stable highlight keys
+  const posInVerseMap = useMemo(() => {
+    const map = new Map<number, number>()
+    const counts = new Map<string, number>()
+    for (const word of words) {
+      if (word.breakType) continue
+      const key = `${word.chapter ?? 0}:${word.verse ?? 0}`
+      const pos = counts.get(key) ?? 0
+      map.set(word.index, pos)
+      counts.set(key, pos + 1)
+    }
+    return map
+  }, [words])
 
   if (words.length === 0) {
     return <div className={styles.empty}>בחר קטע לקריאה</div>
@@ -41,6 +58,10 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
           ? (isActive ? word.full : word.plain)
           : (isPast || isActive ? word.full : word.plain)
 
+        const posInVerse = posInVerseMap.get(word.index) ?? 0
+        const wordKey = `${bookName ?? ''}|${word.chapter ?? 0}|${word.verse ?? 0}|${posInVerse}`
+        const isHighlighted = highlightedWords?.has(wordKey) ?? false
+
         return (
           <Fragment key={word.index}>
             <span
@@ -50,10 +71,17 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
                 isActive ? styles.active : '',
                 isPast ? styles.past : '',
                 isActive && useRashiFont ? styles.normalFont : '',
+                isHighlighted ? styles.highlighted : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
               onClick={() => onWordClick(word.index)}
+              onContextMenu={(e) => {
+                if (onToggleHighlight) {
+                  e.preventDefault()
+                  onToggleHighlight(wordKey)
+                }
+              }}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Word } from './types'
 import { parseVerseText, parseSefariaResponse } from './utils/hebrew'
 import { fetchSefariaText, STATIC_PARASHOT, TANACH_BOOKS } from './utils/sefaria'
-import { savePosition, loadPosition } from './utils/storage'
+import { savePosition, loadPosition, saveHighlights, loadHighlights } from './utils/storage'
 import { updateUrl, parseCurrentUrl } from './utils/url'
 import { usePlayback } from './hooks/usePlayback'
 import Navigation from './components/Navigation'
@@ -26,6 +26,7 @@ export default function App() {
   const [isLightTheme, setIsLightTheme] = useState(() => {
     return localStorage.getItem(THEME_STORAGE_KEY) === 'light'
   })
+  const [highlightedWords, setHighlightedWords] = useState<Set<string>>(() => loadHighlights())
 
   useEffect(() => {
     if (isLightTheme) {
@@ -220,6 +221,19 @@ export default function App() {
     setCurrentWordIndex(index)
   }, [setCurrentWordIndex])
 
+  const handleToggleHighlight = useCallback((wordKey: string) => {
+    setHighlightedWords((prev) => {
+      const next = new Set(prev)
+      if (next.has(wordKey)) {
+        next.delete(wordKey)
+      } else {
+        next.add(wordKey)
+      }
+      saveHighlights(next)
+      return next
+    })
+  }, [])
+
   const handleRashiWordClick = useCallback((index: number) => {
     setRashiCurrentWordIndex(index)
   }, [setRashiCurrentWordIndex])
@@ -295,6 +309,9 @@ export default function App() {
                   currentWordIndex={currentWordIndex}
                   onWordClick={handleWordClick}
                   useRashiFont={useRashiFont}
+                  bookName={bookInfo.book}
+                  highlightedWords={highlightedWords}
+                  onToggleHighlight={handleToggleHighlight}
                 />
                 {hasNextChapter && (
                   <div className={styles.chapterNav}>
