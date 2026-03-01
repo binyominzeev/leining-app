@@ -66,6 +66,10 @@
   direction: rtl;
 }
 
+.highlighted {
+  border-bottom: 2px solid rgba(255, 180, 0, 0.7);
+}
+
 /* Paragraph break markers */
 .petuchahBreak {
   display: block;
