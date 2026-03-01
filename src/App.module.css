@@ -114,21 +114,17 @@
   color: var(--error-color);
 }
 
-.chapterNav {
-  display: flex;
-  justify-content: center;
-  padding: 8px;
-  direction: rtl;
-}
-
 .chapterNavBtn {
-  padding: 6px 20px;
+  display: inline-block;
+  vertical-align: middle;
+  padding: 4px 14px;
+  margin: 0 6px;
   background: var(--btn-primary);
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   transition: background 0.2s;
 }
 
