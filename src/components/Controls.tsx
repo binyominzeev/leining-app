@@ -39,6 +39,7 @@ export default function Controls({ isPlaying, speed, wordCount, currentWordIndex
         className={styles.playBtn}
         onClick={isPlaying ? onPause : onPlay}
         aria-label={isPlaying ? 'עצור' : 'נגן'}
+        title={isPlaying ? 'עצור (Space)' : 'נגן (Space)'}
       >
         {isPlaying ? '⏸' : '▶'}
       </button>

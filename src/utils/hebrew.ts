@@ -19,13 +19,29 @@ export function parseSefariaResponse(
   function addWords(text: string, chapter: number, verse: number) {
     if (!text || typeof text !== 'string') return
     const raw = stripHtml(text)
-    const tokens = raw.split(/\s+/).filter((t) => t.length > 0)
+    // Ensure {פ} and {ס} paragraph markers are separated from surrounding text
+    const processed = raw.replace(/\{[פס]\}/g, ' $& ')
+    const tokens = processed.split(/\s+/).filter((t) => t.length > 0)
     for (const full of tokens) {
+      // Handle paragraph markers as visual breaks (not words)
+      if (full === '{פ}') {
+        words.push({ index: wordIndex++, plain: '', full: '{פ}', taam: null, revealed: false, chapter, verse, breakType: 'petuchah' })
+        continue
+      }
+      if (full === '{ס}') {
+        words.push({ index: wordIndex++, plain: '', full: '{ס}', taam: null, revealed: false, chapter, verse, breakType: 'setumah' })
+        continue
+      }
+      // Skip standalone paseq (U+05C0) tokens
+      if (/^[\u05C0]+$/.test(full)) continue
+      // Strip paseq from tokens that mix it with Hebrew text
+      const stripped = full.replace(/\u05C0/g, '')
+      if (!stripped) continue
       words.push({
         index: wordIndex++,
-        plain: stripDiacritics(full),
-        full,
-        taam: extractTaam(full),
+        plain: stripDiacritics(stripped),
+        full: stripped,
+        taam: extractTaam(stripped),
         revealed: false,
         chapter,
         verse,

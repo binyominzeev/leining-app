@@ -8,11 +8,13 @@ type Props = {
   onRashiFontChange: (value: boolean) => void
   rashiFontSize: number
   onRashiFontSizeChange: (size: number) => void
+  currentBook?: string
+  currentChapter?: number
 }
 
 type Mode = 'manual' | 'parasha'
 
-export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange }: Props) {
+export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange, currentBook, currentChapter }: Props) {
   const [mode, setMode] = useState<Mode>('manual')
   const [book, setBook] = useState('Genesis')
   const [chapter, setChapter] = useState(1)
@@ -25,6 +27,19 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
       .then(setParashot)
       .catch(() => setParashot(STATIC_PARASHOT))
   }, [])
+
+  // Sync dropdowns when the loaded book/chapter changes (e.g. from URL)
+  useEffect(() => {
+    if (currentBook && TANACH_BOOKS.some((b) => b.name === currentBook)) {
+      setBook(currentBook)
+    }
+  }, [currentBook])
+
+  useEffect(() => {
+    if (currentChapter && currentChapter >= 1) {
+      setChapter(currentChapter)
+    }
+  }, [currentChapter])
 
   const selectedBook = TANACH_BOOKS.find((b) => b.name === book)
   const maxChapters = selectedBook?.chapters ?? 1
