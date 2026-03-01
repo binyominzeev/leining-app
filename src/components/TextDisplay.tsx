@@ -89,7 +89,8 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') onWordClick(word.index)
+                if (e.key === 'Enter') onWordClick(word.index)
+                if (e.key === ' ') e.preventDefault()
               }}
             >
               {displayText}
