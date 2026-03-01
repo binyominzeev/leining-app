@@ -65,3 +65,13 @@
   color: var(--text-empty);
   direction: rtl;
 }
+
+/* Paragraph break markers */
+.petuchahBreak {
+  display: block;
+  margin-bottom: 0.8em;
+}
+
+.setumahBreak {
+  display: block;
+}

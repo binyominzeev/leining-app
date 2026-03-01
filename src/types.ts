@@ -6,6 +6,7 @@ export type Word = {
   revealed: boolean
   chapter?: number
   verse?: number
+  breakType?: 'petuchah' | 'setumah'
 }
 
 export type PlaybackState = {

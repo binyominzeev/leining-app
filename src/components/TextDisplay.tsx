@@ -26,6 +26,14 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
   return (
     <div className={[styles.container, useRashiFont ? styles.rashiFont : ''].filter(Boolean).join(' ')} style={fontSize ? { fontSize } : undefined} dir="rtl">
       {words.map((word) => {
+        // Render paragraph markers as visual breaks
+        if (word.breakType === 'petuchah') {
+          return <span key={word.index} className={styles.petuchahBreak} />
+        }
+        if (word.breakType === 'setumah') {
+          return <span key={word.index} className={styles.setumahBreak} />
+        }
+
         const isActive = word.index === currentWordIndex
         const isPast = word.index < currentWordIndex
 

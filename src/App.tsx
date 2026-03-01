@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Word } from './types'
 import { parseVerseText, parseSefariaResponse } from './utils/hebrew'
-import { fetchSefariaText, STATIC_PARASHOT } from './utils/sefaria'
+import { fetchSefariaText, STATIC_PARASHOT, TANACH_BOOKS } from './utils/sefaria'
 import { savePosition, loadPosition } from './utils/storage'
 import { updateUrl, parseCurrentUrl } from './utils/url'
 import { usePlayback } from './hooks/usePlayback'
@@ -53,6 +53,7 @@ export default function App() {
     setSpeed: setRashiSpeed,
     play: rashiPlay,
     pause: rashiPause,
+    toggle: rashiToggle,
   } = usePlayback({ words: rashiWords, speed: 800, onWordChange: handleRashiWordChange })
 
   // Reset Rashi word index when practice text changes
@@ -99,7 +100,7 @@ export default function App() {
     })
   }, [])
 
-  const { currentWordIndex, isPlaying, speed, setCurrentWordIndex, setSpeed, play, pause } =
+  const { currentWordIndex, isPlaying, speed, setCurrentWordIndex, setSpeed, play, pause, toggle } =
     usePlayback({ words, speed: 800, onWordChange: handleWordChange })
 
   const currentWord = words[currentWordIndex] ?? null
@@ -113,6 +114,36 @@ export default function App() {
       document.title = 'Leining App'
     }
   }, [currentWord, bookInfo.book])
+
+  // Space bar shortcut: toggle play/pause
+  const toggleRef = useRef(toggle)
+  const rashiToggleRef = useRef(rashiToggle)
+  const isRashiModeRef = useRef(isRashiMode)
+  useEffect(() => { toggleRef.current = toggle }, [toggle])
+  useEffect(() => { rashiToggleRef.current = rashiToggle }, [rashiToggle])
+  useEffect(() => { isRashiModeRef.current = isRashiMode }, [isRashiMode])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        const target = e.target as HTMLElement
+        if (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable
+        ) return
+        e.preventDefault()
+        if (isRashiModeRef.current) {
+          rashiToggleRef.current()
+        } else {
+          toggleRef.current()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const loadText = useCallback(async (ref: string, book: string, chapter: number, startVerse: number, parashaName?: string): Promise<Word[] | null> => {
     setLoading(true)
@@ -193,6 +224,24 @@ export default function App() {
     setRashiCurrentWordIndex(index)
   }, [setRashiCurrentWordIndex])
 
+  const handlePrevChapter = useCallback(() => {
+    if (!bookInfoRef.current.book || bookInfoRef.current.chapter <= 1) return
+    const prevChapter = bookInfoRef.current.chapter - 1
+    loadText(`${bookInfoRef.current.book} ${prevChapter}`, bookInfoRef.current.book, prevChapter, 1)
+  }, [loadText])
+
+  const handleNextChapter = useCallback(() => {
+    if (!bookInfoRef.current.book) return
+    const bookMeta = TANACH_BOOKS.find((b) => b.name === bookInfoRef.current.book)
+    if (bookMeta && bookInfoRef.current.chapter >= bookMeta.chapters) return
+    const nextChapter = bookInfoRef.current.chapter + 1
+    loadText(`${bookInfoRef.current.book} ${nextChapter}`, bookInfoRef.current.book, nextChapter, 1)
+  }, [loadText])
+
+  const currentBookMeta = TANACH_BOOKS.find((b) => b.name === bookInfo.book)
+  const hasPrevChapter = !!bookInfo.book && bookInfo.chapter > 1
+  const hasNextChapter = !!currentBookMeta && bookInfo.chapter < currentBookMeta.chapters
+
   return (
     <div className={styles.app}>
       <header className={styles.header}>
@@ -214,6 +263,8 @@ export default function App() {
         onRashiFontChange={setUseRashiFont}
         rashiFontSize={rashiFontSize}
         onRashiFontSizeChange={setRashiFontSize}
+        currentBook={bookInfo.book || undefined}
+        currentChapter={bookInfo.chapter}
       />
 
       <div className={styles.main}>
@@ -231,12 +282,28 @@ export default function App() {
                 rashiPractice={true}
               />
             ) : (
-              <TextDisplay
-                words={words}
-                currentWordIndex={currentWordIndex}
-                onWordClick={handleWordClick}
-                useRashiFont={useRashiFont}
-              />
+              <>
+                {hasPrevChapter && (
+                  <div className={styles.chapterNav}>
+                    <button className={styles.chapterNavBtn} onClick={handlePrevChapter}>
+                      ◀ פרק קודם
+                    </button>
+                  </div>
+                )}
+                <TextDisplay
+                  words={words}
+                  currentWordIndex={currentWordIndex}
+                  onWordClick={handleWordClick}
+                  useRashiFont={useRashiFont}
+                />
+                {hasNextChapter && (
+                  <div className={styles.chapterNav}>
+                    <button className={styles.chapterNavBtn} onClick={handleNextChapter}>
+                      פרק הבא ▶
+                    </button>
+                  </div>
+                )}
+              </>
             )
           )}
         </div>
