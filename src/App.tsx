@@ -11,6 +11,7 @@ import Controls from './components/Controls'
 import TaamPanel from './components/TaamPanel'
 import RashiTextPanel from './components/RashiTextPanel'
 import styles from './App.module.css'
+import { KEYBOARD_SEEK_WORDS } from './config/playbackConfig'
 
 const THEME_STORAGE_KEY = 'leining-theme'
 
@@ -120,25 +121,47 @@ export default function App() {
   const toggleRef = useRef(toggle)
   const rashiToggleRef = useRef(rashiToggle)
   const isRashiModeRef = useRef(isRashiMode)
+  const setCurrentWordIndexRef = useRef(setCurrentWordIndex)
+  const setRashiCurrentWordIndexRef = useRef(setRashiCurrentWordIndex)
+  const currentWordIndexRef = useRef(currentWordIndex)
+  const rashiCurrentWordIndexRef = useRef(rashiCurrentWordIndex)
+  const rashiWordsLengthRef = useRef(rashiWords.length)
   useEffect(() => { toggleRef.current = toggle }, [toggle])
   useEffect(() => { rashiToggleRef.current = rashiToggle }, [rashiToggle])
   useEffect(() => { isRashiModeRef.current = isRashiMode }, [isRashiMode])
+  useEffect(() => { setCurrentWordIndexRef.current = setCurrentWordIndex }, [setCurrentWordIndex])
+  useEffect(() => { setRashiCurrentWordIndexRef.current = setRashiCurrentWordIndex }, [setRashiCurrentWordIndex])
+  useEffect(() => { currentWordIndexRef.current = currentWordIndex }, [currentWordIndex])
+  useEffect(() => { rashiCurrentWordIndexRef.current = rashiCurrentWordIndex }, [rashiCurrentWordIndex])
+  useEffect(() => { rashiWordsLengthRef.current = rashiWords.length }, [rashiWords.length])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) return
       if (e.code === 'Space') {
-        const target = e.target as HTMLElement
-        if (
-          target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.isContentEditable
-        ) return
         e.preventDefault()
         if (isRashiModeRef.current) {
           rashiToggleRef.current()
         } else {
           toggleRef.current()
+        }
+      } else if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+        e.preventDefault()
+        // ArrowLeft = forward (+words) — Hebrew text flows right-to-left
+        // ArrowRight = backward (−words)
+        const delta = e.code === 'ArrowLeft' ? KEYBOARD_SEEK_WORDS : -KEYBOARD_SEEK_WORDS
+        if (isRashiModeRef.current) {
+          const newIdx = Math.max(0, Math.min(rashiWordsLengthRef.current - 1, rashiCurrentWordIndexRef.current + delta))
+          setRashiCurrentWordIndexRef.current(newIdx)
+        } else {
+          const newIdx = Math.max(0, Math.min(wordsRef.current.length - 1, currentWordIndexRef.current + delta))
+          setCurrentWordIndexRef.current(newIdx)
         }
       }
     }
