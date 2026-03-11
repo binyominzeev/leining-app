@@ -70,6 +70,22 @@
   border-bottom: 2px solid rgba(255, 180, 0, 0.7);
 }
 
+/* Aliyah section markers (שני, שלישי, etc.) */
+.aliyahMarker {
+  display: inline-block;
+  font-size: 0.55em;
+  line-height: 1;
+  vertical-align: super;
+  background: var(--aliyah-bg, rgba(100, 160, 255, 0.18));
+  color: var(--aliyah-color, #6699ff);
+  border: 1px solid var(--aliyah-border, rgba(100, 160, 255, 0.4));
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin: 0 2px;
+  cursor: default;
+  user-select: none;
+}
+
 /* Paragraph break markers */
 .petuchahBreak {
   display: block;

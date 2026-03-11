@@ -24,6 +24,76 @@ export async function fetchSefariaText(ref: string): Promise<SefariaTextResponse
 }
 
 /**
+ * Hebrew ordinal labels for each aliyah number (2–8 / maftir).
+ * Aliyah 1 has no printed label (it is the start of the reading).
+ */
+export const ALIYAH_LABELS: Record<number, string> = {
+  2: 'שני',
+  3: 'שלישי',
+  4: 'רביעי',
+  5: 'חמישי',
+  6: 'שישי',
+  7: 'שביעי',
+  8: 'מפטיר',
+}
+
+export type AliyahMarker = {
+  aliyah: number   // 1-based aliyah number
+  heLabel: string  // Hebrew ordinal label (e.g. שני)
+  chapter: number
+  verse: number
+}
+
+/**
+ * Fetch the aliyah division refs for a given parasha (English name).
+ * Returns an array of AliyahMarker for aliyot 2–7 (plus maftir if present).
+ * Aliyah 1 is omitted because it has no printed label.
+ */
+export async function fetchAliyot(parashaEn: string): Promise<AliyahMarker[]> {
+  const name = 'Parashat ' + parashaEn
+  const url = `${BASE_URL}/index/${encodeURIComponent(name)}`
+  const response = await fetch(url)
+  if (!response.ok) return []
+
+  const data = (await response.json()) as {
+    alts?: {
+      Parasha?: {
+        refs?: string[]
+        nodes?: Array<{ refs?: string[] }>
+      }
+    }
+  }
+
+  // The Sefaria index for an individual parasha may place aliyah refs directly
+  // on alts.Parasha.refs, or nested under alts.Parasha.nodes[0].refs.
+  const refs: string[] =
+    data.alts?.Parasha?.refs ??
+    data.alts?.Parasha?.nodes?.[0]?.refs ??
+    []
+
+  const markers: AliyahMarker[] = []
+  refs.forEach((ref, i) => {
+    const aliyah = i + 1
+    // Skip aliyah 1 — no printed label
+    if (aliyah === 1) return
+    const label = ALIYAH_LABELS[aliyah]
+    if (!label) return
+    // Parse the start chapter:verse from a ref like "Genesis 1:14-2:3"
+    // Match digits:digits after a whitespace to avoid matching digits in book names
+    const match = ref.match(/\s(\d+):(\d+)/)
+    if (!match) return
+    markers.push({
+      aliyah,
+      heLabel: label,
+      chapter: parseInt(match[1], 10),
+      verse: parseInt(match[2], 10),
+    })
+  })
+
+  return markers
+}
+
+/**
  * Fetch the list of Parashot with their references.
  */
 export type Parasha = {

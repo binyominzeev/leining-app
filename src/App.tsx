@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Word } from './types'
-import { parseVerseText, parseSefariaResponse } from './utils/hebrew'
-import { fetchSefariaText, STATIC_PARASHOT, TANACH_BOOKS } from './utils/sefaria'
+import { parseVerseText, parseSefariaResponse, insertAliyahMarkers } from './utils/hebrew'
+import { fetchSefariaText, fetchAliyot, STATIC_PARASHOT, TANACH_BOOKS } from './utils/sefaria'
 import { savePosition, loadPosition, saveHighlights, loadHighlights } from './utils/storage'
 import { updateUrl, parseCurrentUrl } from './utils/url'
 import { usePlayback } from './hooks/usePlayback'
@@ -173,12 +173,21 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchSefariaText(ref)
-      const parsed = parseSefariaResponse(data.he, chapter, startVerse)
+      const [data, aliyot] = await Promise.all([
+        fetchSefariaText(ref),
+        parashaName ? fetchAliyot(parashaName).catch((err) => {
+          console.warn('Failed to fetch aliyot:', err)
+          return []
+        }) : Promise.resolve([]),
+      ])
+      let parsed = parseSefariaResponse(data.he, chapter, startVerse)
       if (parsed.length === 0) {
         setError('לא נמצא טקסט. נסה קטע אחר.')
         setLoading(false)
         return null
+      }
+      if (aliyot.length > 0) {
+        parsed = insertAliyahMarkers(parsed, aliyot)
       }
       setWords(parsed)
       setBookInfo({ book, chapter, startVerse })

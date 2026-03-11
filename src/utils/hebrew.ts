@@ -1,4 +1,5 @@
 import type { Word } from '../types'
+import type { AliyahMarker } from './sefaria'
 
 /**
  * Parse a Sefaria API 'he' field (string, string[], or string[][]) into Word
@@ -122,4 +123,52 @@ export function parseVerseText(verseText: string | string[]): Word[] {
     taam: extractTaam(full),
     revealed: false,
   }))
+}
+
+/**
+ * Insert aliyah marker pseudo-words into a parsed word array.
+ * For each AliyahMarker (aliyot 2–7+), a virtual word with breakType 'aliyah'
+ * is inserted just before the first real word at that chapter:verse.
+ * Re-indexes all words after insertion.
+ */
+export function insertAliyahMarkers(words: Word[], markers: AliyahMarker[]): Word[] {
+  if (markers.length === 0) return words
+
+  // Build a set of chapter:verse keys where a marker starts
+  const markerMap = new Map<string, AliyahMarker>()
+  for (const m of markers) {
+    markerMap.set(`${m.chapter}:${m.verse}`, m)
+  }
+
+  const result: Word[] = []
+  const seen = new Set<string>()
+
+  for (const word of words) {
+    if (!word.breakType && word.chapter !== undefined && word.verse !== undefined) {
+      const key = `${word.chapter}:${word.verse}`
+      const marker = markerMap.get(key)
+      if (marker && !seen.has(key)) {
+        seen.add(key)
+        result.push({
+          index: 0, // will be re-indexed below
+          plain: '',
+          full: marker.heLabel,
+          taam: null,
+          revealed: true,
+          chapter: word.chapter,
+          verse: word.verse,
+          breakType: 'aliyah',
+          aliyahLabel: marker.heLabel,
+        })
+      }
+    }
+    result.push(word)
+  }
+
+  // Re-index everything
+  for (let i = 0; i < result.length; i++) {
+    result[i] = { ...result[i], index: i }
+  }
+
+  return result
 }
