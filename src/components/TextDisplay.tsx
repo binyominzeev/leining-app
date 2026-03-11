@@ -54,6 +54,10 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
         if (word.breakType === 'setumah') {
           return <span key={word.index} className={styles.setumahBreak} />
         }
+        // Render aliyah section markers (שני, שלישי, etc.)
+        if (word.breakType === 'aliyah') {
+          return <span key={word.index} className={styles.aliyahMarker}>{word.aliyahLabel}</span>
+        }
 
         const isActive = word.index === currentWordIndex
         const isPast = word.index < currentWordIndex

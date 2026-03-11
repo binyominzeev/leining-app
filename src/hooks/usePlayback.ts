@@ -41,7 +41,11 @@ export function usePlayback({ words, speed: initialSpeed, onWordChange }: UsePla
 
   const advance = useCallback(() => {
     if (!isPlayingRef.current) return
-    const next = currentIndexRef.current + 1
+    let next = currentIndexRef.current + 1
+    // Skip over marker words (paragraph breaks, aliyah markers)
+    while (next < words.length && words[next].breakType) {
+      next++
+    }
     if (next >= words.length) {
       setIsPlaying(false)
       return
@@ -49,7 +53,7 @@ export function usePlayback({ words, speed: initialSpeed, onWordChange }: UsePla
     setCurrentWordIndexState(next)
     onWordChange(next)
     timerRef.current = setTimeout(advance, speedRef.current)
-  }, [words.length, onWordChange])
+  }, [words, onWordChange])
 
   const play = useCallback(() => {
     if (currentIndexRef.current >= words.length - 1) return
