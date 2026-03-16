@@ -8,7 +8,6 @@ import { usePlayback } from './hooks/usePlayback'
 import Navigation from './components/Navigation'
 import TextDisplay from './components/TextDisplay'
 import Controls from './components/Controls'
-import TaamPanel from './components/TaamPanel'
 import RashiTextPanel from './components/RashiTextPanel'
 import styles from './App.module.css'
 import { KEYBOARD_SEEK_WORDS } from './config/playbackConfig'
@@ -291,7 +290,17 @@ export default function App() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <h1 className={styles.title}>מאמן קריאת תורה</h1>
+        <div className={styles.headerStart}>
+          <h1 className={styles.title}>Leining App</h1>
+          <a
+            href="https://myshiurim.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.siteLink}
+          >
+            myshiurim.com
+          </a>
+        </div>
         <label className={styles.themeToggle}>
           <span>☀️</span>
           <input
@@ -313,7 +322,7 @@ export default function App() {
         currentChapter={bookInfo.chapter}
       />
 
-      <div className={styles.main}>
+      <div className={`${styles.main} ${!useRashiFont ? styles.noSidebar : ''}`}>
         <div className={styles.textArea}>
           {loading && <div className={styles.loading}>טוען...</div>}
           {error && <div className={styles.error}>{error}</div>}
@@ -353,15 +362,14 @@ export default function App() {
           )}
         </div>
 
-        <aside className={styles.sidebar}>
-          <TaamPanel word={currentWord} />
-          {useRashiFont && (
+        {useRashiFont && (
+          <aside className={styles.sidebar}>
             <RashiTextPanel
               text={rashiPracticeText}
               onTextChange={setRashiPracticeText}
             />
-          )}
-        </aside>
+          </aside>
+        )}
       </div>
 
       <Controls
@@ -373,6 +381,18 @@ export default function App() {
         onPause={isRashiMode ? rashiPause : pause}
         onSpeedChange={isRashiMode ? setRashiSpeed : setSpeed}
       />
+
+      <footer className={styles.footer}>
+        Powered by{' '}
+        <a
+          href="https://www.sefaria.org"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.sefariaLink}
+        >
+          Sefaria
+        </a>
+      </footer>
     </div>
   )
 }

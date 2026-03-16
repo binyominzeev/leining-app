@@ -95,3 +95,13 @@
 .setumahBreak {
   display: block;
 }
+
+/* Mobile: reduce font size so more text fits on screen */
+@media (max-width: 640px) {
+  .container {
+    font-size: 1.8rem;
+    line-height: 2.2;
+    padding: 10px 12px;
+    word-spacing: 0.2em;
+  }
+}

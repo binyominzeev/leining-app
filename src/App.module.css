@@ -13,14 +13,34 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  direction: rtl;
+  direction: ltr;
+  flex-shrink: 0;
+}
+
+.headerStart {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .title {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-gold);
-  font-family: 'Taamey Frank CLM', serif;
+  font-family: serif;
+}
+
+.siteLink {
+  font-size: 0.9rem;
+  color: var(--text-accent);
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+
+.siteLink:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 
 .themeToggle {
@@ -73,16 +93,27 @@
   direction: rtl;
 }
 
+/* When no sidebar: center the text area with a comfortable reading width */
+.noSidebar {
+  justify-content: center;
+}
+
+.noSidebar .textArea {
+  flex: none;
+  width: 100%;
+  max-width: 900px;
+}
+
 .textArea {
   flex: 1;
   overflow-y: auto;
   position: relative;
   display: flex;
   flex-direction: column;
-  font-size: 2rem;            /* Increase font size */
-  white-space: normal;        /* Allow line wrapping at word boundaries */
-  word-break: normal;         /* Don't break words in the middle */
-  overflow-wrap: normal;      /* Don't break words in the middle */
+  font-size: 2rem;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .sidebar {
@@ -130,4 +161,48 @@
 
 .chapterNavBtn:hover {
   background: var(--btn-primary-hover);
+}
+
+.footer {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 8px 20px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  direction: ltr;
+  flex-shrink: 0;
+}
+
+.sefariaLink {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.sefariaLink:hover {
+  text-decoration: underline;
+}
+
+/* Mobile: compact layout so more text is visible */
+@media (max-width: 640px) {
+  .header {
+    padding: 8px 12px;
+  }
+
+  .title {
+    font-size: 1.1rem;
+  }
+
+  .siteLink {
+    font-size: 0.8rem;
+  }
+
+  .noSidebar .textArea {
+    max-width: 100%;
+  }
+
+  .footer {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
 }
