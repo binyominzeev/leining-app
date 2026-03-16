@@ -216,9 +216,9 @@ export default function App() {
           const pVerse = match ? parseInt(match[3], 10) : 1
           loadText(parasha.ref, pBook, pChapter, pVerse, parasha.en).then((parsed) => {
             if (!parsed) return
-            // Jump to the verse specified in the URL
+            // Jump to the verse specified in the URL, skipping any break/marker words
             const targetIdx = parsed.findIndex(
-              (w) => w.chapter === urlRoute.chapter && w.verse === urlRoute.verse,
+              (w) => !w.breakType && w.chapter === urlRoute.chapter && w.verse === urlRoute.verse,
             )
             if (targetIdx >= 0) setCurrentWordIndex(targetIdx)
           })
@@ -230,7 +230,7 @@ export default function App() {
         loadText(ref, urlRoute.book, urlRoute.chapter, 1).then((parsed) => {
           if (!parsed) return
           const targetIdx = parsed.findIndex(
-            (w) => w.chapter === urlRoute.chapter && w.verse === urlRoute.verse,
+            (w) => !w.breakType && w.chapter === urlRoute.chapter && w.verse === urlRoute.verse,
           )
           if (targetIdx >= 0) setCurrentWordIndex(targetIdx)
         })
