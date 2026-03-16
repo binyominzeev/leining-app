@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef } from 'react'
+import { Fragment, useLayoutEffect, useMemo, useRef } from 'react'
 import type React from 'react'
 import type { Word } from '../types'
 import styles from './TextDisplay.module.css'
@@ -21,7 +21,7 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
   const activeRef = useRef<HTMLSpanElement | null>(null)
 
   // Autoscroll: keep active word visible
-  useEffect(() => {
+  useLayoutEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [currentWordIndex])
 
