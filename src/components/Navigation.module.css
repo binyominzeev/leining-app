@@ -116,3 +116,30 @@
   font-size: 0.9rem;
   text-align: center;
 }
+
+/* Mobile: tighten navigation bar */
+@media (max-width: 640px) {
+  .nav {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .modeToggle button {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+
+  .select {
+    padding: 4px 6px;
+    font-size: 0.8rem;
+  }
+
+  .loadBtn {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+
+  .rashiCheckbox {
+    font-size: 0.8rem;
+  }
+}
