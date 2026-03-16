@@ -46,30 +46,25 @@ export type AliyahMarker = {
 
 /**
  * Fetch the aliyah division refs for a given parasha (English name).
+ * Uses the Sefaria calendars next-read API which returns aliyot in
+ * extraDetails.aliyot as an array of refs like "Genesis 44:18-44:30".
  * Returns an array of AliyahMarker for aliyot 2–7 (plus maftir if present).
  * Aliyah 1 is omitted because it has no printed label.
  */
 export async function fetchAliyot(parashaEn: string): Promise<AliyahMarker[]> {
-  const name = 'Parashat ' + parashaEn
-  const url = `${BASE_URL}/index/${encodeURIComponent(name)}`
+  const url = `${BASE_URL}/calendars/next-read/${encodeURIComponent(parashaEn)}`
   const response = await fetch(url)
   if (!response.ok) return []
 
   const data = (await response.json()) as {
-    alts?: {
-      Parasha?: {
-        refs?: string[]
-        nodes?: Array<{ refs?: string[] }>
+    parasha?: {
+      extraDetails?: {
+        aliyot?: string[]
       }
     }
   }
 
-  // The Sefaria index for an individual parasha may place aliyah refs directly
-  // on alts.Parasha.refs, or nested under alts.Parasha.nodes[0].refs.
-  const refs: string[] =
-    data.alts?.Parasha?.refs ??
-    data.alts?.Parasha?.nodes?.[0]?.refs ??
-    []
+  const refs: string[] = data.parasha?.extraDetails?.aliyot ?? []
 
   const markers: AliyahMarker[] = []
   refs.forEach((ref, i) => {
@@ -78,7 +73,7 @@ export async function fetchAliyot(parashaEn: string): Promise<AliyahMarker[]> {
     if (aliyah === 1) return
     const label = ALIYAH_LABELS[aliyah]
     if (!label) return
-    // Parse the start chapter:verse from a ref like "Genesis 1:14-2:3"
+    // Parse the start chapter:verse from a ref like "Genesis 44:31-45:7"
     // Match digits:digits after a whitespace to avoid matching digits in book names
     const match = ref.match(/\s(\d+):(\d+)/)
     if (!match) return
