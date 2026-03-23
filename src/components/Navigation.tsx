@@ -1,6 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { TANACH_BOOKS, STATIC_PARASHOT, fetchParashot, type Parasha } from '../utils/sefaria'
 import styles from './Navigation.module.css'
+
+const TORAH_BOOKS = ['Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy'] as const
+
+const BOOK_HEBREW: Record<string, string> = {
+  Genesis: 'בְּרֵאשִׁית',
+  Exodus: 'שְׁמוֹת',
+  Leviticus: 'וַיִּקְרָא',
+  Numbers: 'בְּמִדְבַּר',
+  Deuteronomy: 'דְּבָרִים',
+}
 
 type Props = {
   onLoad: (ref: string, book: string, chapter: number, startVerse: number, parashaName?: string) => void
@@ -21,6 +31,8 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
   const [startVerse, setStartVerse] = useState(1)
   const [parashot, setParashot] = useState<Parasha[]>(STATIC_PARASHOT)
   const [selectedParasha, setSelectedParasha] = useState(STATIC_PARASHOT[0].ref)
+  const [megaMenuOpen, setMegaMenuOpen] = useState(false)
+  const megaMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetchParashot()
@@ -40,6 +52,26 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
       setChapter(currentChapter)
     }
   }, [currentChapter])
+
+  // Close mega menu when clicking outside (only while open)
+  useEffect(() => {
+    if (!megaMenuOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (megaMenuRef.current && !megaMenuRef.current.contains(e.target as Node)) {
+        setMegaMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [megaMenuOpen])
+
+  // Group parashot by Torah book in canonical order
+  const parashotByBook = TORAH_BOOKS.map((bookName) => ({
+    book: bookName,
+    parashot: parashot.filter((p) => p.book === bookName),
+  }))
+
+  const selectedParashaObj = parashot.find((p) => p.ref === selectedParasha)
 
   const selectedBook = TANACH_BOOKS.find((b) => b.name === book)
   const maxChapters = selectedBook?.chapters ?? 1
@@ -115,17 +147,54 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
         </div>
       ) : (
         <div className={styles.parashaForm}>
-          <select
-            value={selectedParasha}
-            onChange={(e) => setSelectedParasha(e.target.value)}
-            className={styles.select}
-          >
-            {parashot.map((p) => (
-              <option key={p.ref} value={p.ref}>
-                {p.he} ({p.en})
-              </option>
-            ))}
-          </select>
+          <div className={styles.megaMenuWrapper} ref={megaMenuRef}>
+            <button
+              className={styles.megaMenuBtn}
+              onClick={() => setMegaMenuOpen((o) => !o)}
+              aria-haspopup="true"
+              aria-expanded={megaMenuOpen}
+            >
+              {selectedParashaObj
+                ? `${selectedParashaObj.he} (${selectedParashaObj.en})`
+                : 'בחר פרשה' /* Select a parasha */}
+              <span className={styles.megaMenuArrow}>{megaMenuOpen ? '▲' : '▼'}</span>
+            </button>
+
+            {megaMenuOpen && (
+              <div className={styles.megaMenu} role="listbox">
+                <div className={styles.megaMenuGrid}>
+                  {parashotByBook.map(({ book: bookName, parashot: bookParashot }) => (
+                    <div key={bookName} className={styles.megaMenuColumn}>
+                      <div className={styles.megaMenuBookHeader}>
+                        <span className={styles.megaMenuBookHe}>{BOOK_HEBREW[bookName]}</span>
+                        <span className={styles.megaMenuBookEn}>{bookName}</span>
+                      </div>
+                      {bookParashot.map((p) => (
+                        <button
+                          key={p.ref}
+                          role="option"
+                          aria-selected={p.ref === selectedParasha}
+                          className={
+                            p.ref === selectedParasha
+                              ? `${styles.megaMenuParasha} ${styles.megaMenuParashaSelected}`
+                              : styles.megaMenuParasha
+                          }
+                          onClick={() => {
+                            setSelectedParasha(p.ref)
+                            setMegaMenuOpen(false)
+                          }}
+                        >
+                          <span className={styles.megaMenuParashaHe}>{p.he}</span>
+                          <span className={styles.megaMenuParashaEn}>{p.en}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <button className={styles.loadBtn} onClick={handleParashaLoad}>
             טען
           </button>
