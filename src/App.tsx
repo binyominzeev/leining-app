@@ -7,6 +7,7 @@ import { updateUrl, parseCurrentUrl } from './utils/url'
 import { usePlayback } from './hooks/usePlayback'
 import Navigation from './components/Navigation'
 import TextDisplay from './components/TextDisplay'
+import SeferTorahDisplay from './components/SeferTorahDisplay'
 import Controls from './components/Controls'
 import RashiTextPanel from './components/RashiTextPanel'
 import styles from './App.module.css'
@@ -27,6 +28,7 @@ export default function App() {
     return localStorage.getItem(THEME_STORAGE_KEY) === 'light'
   })
   const [highlightedWords, setHighlightedWords] = useState<Set<string>>(() => loadHighlights())
+  const [isSeferTorahMode, setIsSeferTorahMode] = useState(false)
 
   useEffect(() => {
     if (isLightTheme) {
@@ -191,6 +193,7 @@ export default function App() {
       setWords(parsed)
       setBookInfo({ book, chapter, startVerse })
       setCurrentParashaName(parashaName ?? null)
+      setIsSeferTorahMode(false)
       lastUrlVerseRef.current = null
       setCurrentWordIndex(0)
       return parsed
@@ -320,6 +323,9 @@ export default function App() {
         onRashiFontSizeChange={setRashiFontSize}
         currentBook={bookInfo.book || undefined}
         currentChapter={bookInfo.chapter}
+        parashaLoaded={!!currentParashaName && words.length > 0}
+        seferTorahMode={isSeferTorahMode}
+        onSeferTorahModeToggle={() => setIsSeferTorahMode((prev) => !prev)}
       />
 
       <div className={`${styles.main} ${!useRashiFont ? styles.noSidebar : ''}`}>
@@ -327,7 +333,9 @@ export default function App() {
           {loading && <div className={styles.loading}>טוען...</div>}
           {error && <div className={styles.error}>{error}</div>}
           {!loading && !error && (
-            isRashiMode ? (
+            isSeferTorahMode ? (
+              <SeferTorahDisplay words={words} />
+            ) : isRashiMode ? (
               <TextDisplay
                 words={rashiWords}
                 currentWordIndex={rashiCurrentWordIndex}

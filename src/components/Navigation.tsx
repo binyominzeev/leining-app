@@ -20,11 +20,14 @@ type Props = {
   onRashiFontSizeChange: (size: number) => void
   currentBook?: string
   currentChapter?: number
+  parashaLoaded?: boolean
+  seferTorahMode?: boolean
+  onSeferTorahModeToggle?: () => void
 }
 
 type Mode = 'manual' | 'parasha'
 
-export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange, currentBook, currentChapter }: Props) {
+export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange, currentBook, currentChapter, parashaLoaded, seferTorahMode, onSeferTorahModeToggle }: Props) {
   const [mode, setMode] = useState<Mode>('manual')
   const [book, setBook] = useState('Genesis')
   const [chapter, setChapter] = useState(1)
@@ -223,6 +226,17 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
           />
           rem
         </label>
+      )}
+
+      {parashaLoaded && onSeferTorahModeToggle && (
+        <button
+          className={[styles.seferTorahBtn, seferTorahMode ? styles.seferTorahBtnActive : ''].filter(Boolean).join(' ')}
+          onClick={onSeferTorahModeToggle}
+          title={seferTorahMode ? 'חזרה למצב רגיל' : 'מצב ספר תורה'}
+          aria-pressed={seferTorahMode}
+        >
+          📜
+        </button>
       )}
     </div>
   )
