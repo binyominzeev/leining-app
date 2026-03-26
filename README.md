@@ -11,6 +11,21 @@ A web app for practising Torah reading (leining) with cantillation marks (ta'ami
   - *Parasha* — load the current week's Torah portion directly from the Sefaria calendar
 - **Progress persistence** — your last reading position is saved in the browser so you can pick up where you left off
 - **Right-to-left Hebrew UI** with Frank Ruhl Libre typeface
+- **Sefer Torah mode** to see which aliyah is how long
+
+## Screenshots
+
+Choose a parasha:
+
+<img width="1920" height="1080" alt="Screenshot from 2026-03-26 23-43-15" src="https://github.com/user-attachments/assets/abadd92a-6dcc-463d-bd62-d43641659880" />
+
+Read along (or ahead) in your own set pace (WPM = words per minute):
+
+<img width="1920" height="1080" alt="Screenshot from 2026-03-26 23-43-26" src="https://github.com/user-attachments/assets/c7dd2fcb-e514-4fcd-a7e9-4a427327ad4b" />
+
+Sefer Torah mode (with aliyos showing):
+
+<img width="1920" height="1080" alt="Screenshot from 2026-03-26 23-43-34" src="https://github.com/user-attachments/assets/47756a5a-7815-4f60-bb43-e31fa2f8a402" />
 
 ## Tech Stack
 
