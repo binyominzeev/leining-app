@@ -114,104 +114,52 @@ export type Parasha = {
   aliyotRefs?: string[]
 }
 
-/**
- * Combined parasha readings that appear in some years.
- * Inserted into the parasha list after the last constituent parasha.
- */
-const COMBINED_PARASHOT: Parasha[] = [
-  { en: 'Vayakhel-Pekudei', he: 'וַיַּקְהֵל-פְקוּדֵי', ref: 'Exodus 35:1-40:38', book: 'Exodus' },
-  { en: 'Tazria-Metzora', he: 'תַזְרִיעַ-מְּצֹרָע', ref: 'Leviticus 12:1-15:33', book: 'Leviticus' },
-  { en: 'Achrei Mot-Kedoshim', he: 'אַחֲרֵי מוֹת-קְדשִׁים', ref: 'Leviticus 16:1-20:27', book: 'Leviticus' },
-  { en: 'Behar-Bechukotai', he: 'בְּהַר-בְּחֻקֹּתַי', ref: 'Leviticus 25:1-27:34', book: 'Leviticus' },
-  { en: 'Chukat-Balak', he: 'חֻקַּת-בָּלָק', ref: 'Numbers 19:1-25:9', book: 'Numbers' },
-  { en: 'Matot-Masei', he: 'מַּטּוֹת-מַסְעֵי', ref: 'Numbers 30:2-36:13', book: 'Numbers' },
-  { en: 'Nitzavim-Vayeilech', he: 'נִצָּבִים-וַיֵּלֶךְ', ref: 'Deuteronomy 29:9-31:30', book: 'Deuteronomy' },
-]
-
-/** Maps the English name of the *second* constituent parasha to its combined entry. */
-const COMBINED_AFTER: Record<string, Parasha> = {
-  Pekudei: COMBINED_PARASHOT[0],
-  Metzora: COMBINED_PARASHOT[1],
-  Kedoshim: COMBINED_PARASHOT[2],
-  Bechukotai: COMBINED_PARASHOT[3],
-  Balak: COMBINED_PARASHOT[4],
-  Masei: COMBINED_PARASHOT[5],
-  Vayeilech: COMBINED_PARASHOT[6],
-}
 
 let parashotCache: Parasha[] | null = null
+
+/**
+ * Sefaria sometimes abbreviates same-chapter ranges: e.g. "Deuteronomy 31:1-30"
+ * instead of "Deuteronomy 31:1-31:30".  Expand these so they match the refs
+ * stored in STATIC_PARASHOT.
+ */
+function expandSefariaRef(ref: string): string {
+  return ref.replace(/(\d+):(\d+)-(\d+)$/, '$1:$2-$1:$3')
+}
 
 export async function fetchParashot(): Promise<Parasha[]> {
   if (parashotCache) return parashotCache
 
-  const url = `${BASE_URL}/calendars?diaspora=1`
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`Sefaria API error: ${response.status} ${response.statusText}`)
-  }
-  const data = (await response.json()) as {
-    calendar_items: Array<{
-      title: { en: string; he: string }
-      displayValue: { en: string; he: string }
-      ref: string
-      category: string
-    }>
-  }
-
-  const torahItems = data.calendar_items.filter(
-    (item) => item.category === 'Parashat Hashavua'
-  )
-
-  // Build static parasha list from the Sefaria index API
-  const indexUrl = `${BASE_URL}/index/Torah`
-  const indexResp = await fetch(indexUrl)
-  if (!indexResp.ok) {
-    // Fallback: use the calendar item
-    parashotCache = torahItems.map((item) => ({
-      en: item.displayValue.en,
-      he: item.displayValue.he,
-      ref: item.ref,
-      book: item.ref.split(' ')[0],
-    }))
-    return parashotCache
-  }
-
-  const indexData = (await indexResp.json()) as {
-    contents?: Array<{
-      category: string
-      contents: Array<{ title: string; heTitle: string; alts?: { Parasha?: { nodes?: Array<{ wholeRef: string; title: string; heTitle: string; refs?: string[] }> } } }>
-    }>
-  }
-
-  const parashot: Parasha[] = []
-  if (indexData.contents) {
-    for (const bookGroup of indexData.contents) {
-      for (const book of bookGroup.contents ?? []) {
-        const nodes = book.alts?.Parasha?.nodes ?? []
-        for (const node of nodes) {
-          parashot.push({
-            en: node.title,
-            he: node.heTitle,
-            ref: node.wholeRef,
-            book: book.title,
-            aliyotRefs: node.refs,
-          })
-          // Insert the combined reading entry immediately after its second constituent
-          const combined = COMBINED_AFTER[node.title]
-          if (combined) {
-            parashot.push(combined)
+  // The Sefaria API exposes per-book index endpoints (e.g. /api/index/Leviticus)
+  // but not a combined /api/index/Torah endpoint.  Fetch each Torah book in
+  // parallel to build a lookup map: normalized wholeRef → aliyot refs.
+  const aliyotByRef = new Map<string, string[]>()
+  try {
+    await Promise.all(
+      ['Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy'].map(async (bookName) => {
+        const resp = await fetch(`${BASE_URL}/index/${bookName}`)
+        if (!resp.ok) return
+        const data = (await resp.json()) as {
+          alts?: { Parasha?: { nodes?: Array<{ wholeRef: string; refs?: string[] }> } }
+        }
+        for (const node of data.alts?.Parasha?.nodes ?? []) {
+          if (node.refs?.length) {
+            aliyotByRef.set(expandSefariaRef(node.wholeRef), node.refs)
           }
         }
-      }
-    }
+      })
+    )
+  } catch {
+    // If the index API is unreachable, continue without aliyotRefs.
   }
 
-  if (parashot.length > 0) {
-    parashotCache = parashot
-  } else {
-    // Fallback to static list
-    parashotCache = STATIC_PARASHOT
-  }
+  // Populate aliyotRefs on STATIC_PARASHOT entries by matching wholeRef.
+  // Combined parashot (e.g. Vayakhel-Pekudei) are already present in
+  // STATIC_PARASHOT without individual aliyotRefs; they fall back to
+  // fetchAliyot() at load time.
+  parashotCache = STATIC_PARASHOT.map((p) => {
+    const refs = aliyotByRef.get(p.ref)
+    return refs ? { ...p, aliyotRefs: refs } : p
+  })
 
   return parashotCache
 }
