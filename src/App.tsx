@@ -410,6 +410,8 @@ export default function App() {
           className={styles.sefariaLink}
         >
           Sefaria
+        </a> | Visit on <a href="https://github.com/binyominzeev/leining-app" target="_blank" rel="noopener noreferrer" className={styles.githubLink}>
+          GitHub
         </a>
       </footer>
     </div>
