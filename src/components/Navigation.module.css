@@ -117,6 +117,31 @@
   text-align: center;
 }
 
+/* ── Sefer Torah mode toggle button ──────────────────────────────── */
+
+.seferTorahBtn {
+  padding: 5px 10px;
+  font-size: 1.1rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-accent);
+  transition: background 0.15s, border-color 0.15s;
+  line-height: 1;
+}
+
+.seferTorahBtn:hover {
+  background: var(--btn-active-bg);
+  border-color: var(--text-accent);
+}
+
+.seferTorahBtnActive {
+  background: var(--word-active-bg);
+  border-color: var(--text-gold);
+  color: var(--text-gold);
+}
+
 /* ── Mega-menu parasha selector ─────────────────────────────────────── */
 
 .megaMenuWrapper {

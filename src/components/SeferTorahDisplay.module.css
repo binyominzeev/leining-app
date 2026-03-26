@@ -1,0 +1,72 @@
+.scrollWrapper {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 100%;
+  flex: 1;
+  direction: rtl;
+}
+
+.columnsContent {
+  direction: rtl;
+  height: 100%;
+  column-width: 280px;
+  column-fill: auto;
+  column-gap: 2rem;
+  padding: 12px 16px;
+  font-size: 1.05rem;
+  line-height: 1.9;
+  font-family: 'Taamey Frank CLM', serif;
+  color: var(--text-display);
+  word-spacing: 0.15em;
+  /* min-width prevents shrinking below available space when content is short */
+  min-width: 100%;
+}
+
+.word {
+  display: inline;
+}
+
+/* Aliyah section markers (שני, שלישי, etc.) */
+.aliyahMarker {
+  display: inline-block;
+  font-size: 0.6em;
+  line-height: 1;
+  vertical-align: super;
+  background: var(--aliyah-bg, rgba(100, 160, 255, 0.18));
+  color: var(--aliyah-color, #6699ff);
+  border: 1px solid var(--aliyah-border, rgba(100, 160, 255, 0.4));
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin: 0 2px;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* Paragraph break markers */
+.petuchahBreak {
+  display: block;
+  margin-bottom: 0.6em;
+}
+
+.setumahBreak {
+  display: block;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 1.4rem;
+  color: var(--text-empty);
+  direction: rtl;
+}
+
+/* Mobile: narrower columns so more fit on small screens */
+@media (max-width: 640px) {
+  .columnsContent {
+    column-width: 200px;
+    font-size: 0.9rem;
+    padding: 10px 12px;
+  }
+}
