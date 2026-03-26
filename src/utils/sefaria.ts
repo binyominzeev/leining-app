@@ -45,27 +45,12 @@ export type AliyahMarker = {
 }
 
 /**
- * Fetch the aliyah division refs for a given parasha (English name).
- * Uses the Sefaria calendars next-read API which returns aliyot in
- * extraDetails.aliyot as an array of refs like "Genesis 44:18-44:30".
- * Returns an array of AliyahMarker for aliyot 2–7 (plus maftir if present).
- * Aliyah 1 is omitted because it has no printed label.
+ * Parse an array of aliyah refs (from the Sefaria index API) into AliyahMarker objects.
+ * Each ref is the full range for one aliyah, e.g. "Genesis 1:1-2:3".
+ * The start chapter:verse of each ref is used as the marker position.
+ * Aliyah 1 is omitted (no printed label). Aliyah 8 is labelled מפטיר.
  */
-export async function fetchAliyot(parashaEn: string): Promise<AliyahMarker[]> {
-  const url = `${BASE_URL}/calendars/next-read/${encodeURIComponent(parashaEn)}`
-  const response = await fetch(url)
-  if (!response.ok) return []
-
-  const data = (await response.json()) as {
-    parasha?: {
-      extraDetails?: {
-        aliyot?: string[]
-      }
-    }
-  }
-
-  const refs: string[] = data.parasha?.extraDetails?.aliyot ?? []
-
+export function parseAliyotRefs(refs: string[]): AliyahMarker[] {
   const markers: AliyahMarker[] = []
   refs.forEach((ref, i) => {
     const aliyah = i + 1
@@ -84,8 +69,35 @@ export async function fetchAliyot(parashaEn: string): Promise<AliyahMarker[]> {
       verse: parseInt(match[2], 10),
     })
   })
-
   return markers
+}
+
+/**
+ * Fetch the aliyah division refs for a given parasha (English name).
+ * Uses the Sefaria calendars next-read API which returns aliyot in
+ * extraDetails.aliyot as an array of refs like "Genesis 44:18-44:30".
+ * Returns an array of AliyahMarker for aliyot 2–7 (plus maftir if present).
+ * Aliyah 1 is omitted because it has no printed label.
+ *
+ * NOTE: prefer passing aliyotRefs from the index API (via Parasha.aliyotRefs)
+ * and calling parseAliyotRefs() directly, which is year-independent.
+ * This function is used as a fallback for combined readings.
+ */
+export async function fetchAliyot(parashaEn: string): Promise<AliyahMarker[]> {
+  const url = `${BASE_URL}/calendars/next-read/${encodeURIComponent(parashaEn)}`
+  const response = await fetch(url)
+  if (!response.ok) return []
+
+  const data = (await response.json()) as {
+    parasha?: {
+      extraDetails?: {
+        aliyot?: string[]
+      }
+    }
+  }
+
+  const refs: string[] = data.parasha?.extraDetails?.aliyot ?? []
+  return parseAliyotRefs(refs)
 }
 
 /**
@@ -96,6 +108,35 @@ export type Parasha = {
   he: string
   ref: string
   book: string
+  /** Aliyah division refs from the Sefaria index API (individual readings only).
+   *  Use parseAliyotRefs() on this array instead of fetchAliyot() to get
+   *  year-independent aliyah markers. Absent for combined readings. */
+  aliyotRefs?: string[]
+}
+
+/**
+ * Combined parasha readings that appear in some years.
+ * Inserted into the parasha list after the last constituent parasha.
+ */
+const COMBINED_PARASHOT: Parasha[] = [
+  { en: 'Vayakhel-Pekudei', he: 'וַיַּקְהֵל-פְקוּדֵי', ref: 'Exodus 35:1-40:38', book: 'Exodus' },
+  { en: 'Tazria-Metzora', he: 'תַזְרִיעַ-מְּצֹרָע', ref: 'Leviticus 12:1-15:33', book: 'Leviticus' },
+  { en: 'Achrei Mot-Kedoshim', he: 'אַחֲרֵי מוֹת-קְדשִׁים', ref: 'Leviticus 16:1-20:27', book: 'Leviticus' },
+  { en: 'Behar-Bechukotai', he: 'בְּהַר-בְּחֻקֹּתַי', ref: 'Leviticus 25:1-27:34', book: 'Leviticus' },
+  { en: 'Chukat-Balak', he: 'חֻקַּת-בָּלָק', ref: 'Numbers 19:1-25:9', book: 'Numbers' },
+  { en: 'Matot-Masei', he: 'מַּטּוֹת-מַסְעֵי', ref: 'Numbers 30:2-36:13', book: 'Numbers' },
+  { en: 'Nitzavim-Vayeilech', he: 'נִצָּבִים-וַיֵּלֶךְ', ref: 'Deuteronomy 29:9-31:30', book: 'Deuteronomy' },
+]
+
+/** Maps the English name of the *second* constituent parasha to its combined entry. */
+const COMBINED_AFTER: Record<string, Parasha> = {
+  Pekudei: COMBINED_PARASHOT[0],
+  Metzora: COMBINED_PARASHOT[1],
+  Kedoshim: COMBINED_PARASHOT[2],
+  Bechukotai: COMBINED_PARASHOT[3],
+  Balak: COMBINED_PARASHOT[4],
+  Masei: COMBINED_PARASHOT[5],
+  Vayeilech: COMBINED_PARASHOT[6],
 }
 
 let parashotCache: Parasha[] | null = null
@@ -138,7 +179,7 @@ export async function fetchParashot(): Promise<Parasha[]> {
   const indexData = (await indexResp.json()) as {
     contents?: Array<{
       category: string
-      contents: Array<{ title: string; heTitle: string; alts?: { Parasha?: { nodes?: Array<{ wholeRef: string; title: string; heTitle: string }> } } }>
+      contents: Array<{ title: string; heTitle: string; alts?: { Parasha?: { nodes?: Array<{ wholeRef: string; title: string; heTitle: string; refs?: string[] }> } } }>
     }>
   }
 
@@ -153,7 +194,13 @@ export async function fetchParashot(): Promise<Parasha[]> {
             he: node.heTitle,
             ref: node.wholeRef,
             book: book.title,
+            aliyotRefs: node.refs,
           })
+          // Insert the combined reading entry immediately after its second constituent
+          const combined = COMBINED_AFTER[node.title]
+          if (combined) {
+            parashot.push(combined)
+          }
         }
       }
     }
@@ -196,16 +243,20 @@ export const STATIC_PARASHOT: Parasha[] = [
   { en: "Ki Tisa", he: 'כִּי תִשָּׂא', ref: 'Exodus 30:11-34:35', book: 'Exodus' },
   { en: 'Vayakhel', he: 'וַיַּקְהֵל', ref: 'Exodus 35:1-38:20', book: 'Exodus' },
   { en: 'Pekudei', he: 'פְקוּדֵי', ref: 'Exodus 38:21-40:38', book: 'Exodus' },
+  { en: 'Vayakhel-Pekudei', he: 'וַיַּקְהֵל-פְקוּדֵי', ref: 'Exodus 35:1-40:38', book: 'Exodus' },
   { en: 'Vayikra', he: 'וַיִּקְרָא', ref: 'Leviticus 1:1-5:26', book: 'Leviticus' },
   { en: 'Tzav', he: 'צַו', ref: 'Leviticus 6:1-8:36', book: 'Leviticus' },
   { en: 'Shemini', he: 'שְּׁמִינִי', ref: 'Leviticus 9:1-11:47', book: 'Leviticus' },
   { en: 'Tazria', he: 'תַזְרִיעַ', ref: 'Leviticus 12:1-13:59', book: 'Leviticus' },
   { en: 'Metzora', he: 'מְּצֹרָע', ref: 'Leviticus 14:1-15:33', book: 'Leviticus' },
+  { en: 'Tazria-Metzora', he: 'תַזְרִיעַ-מְּצֹרָע', ref: 'Leviticus 12:1-15:33', book: 'Leviticus' },
   { en: 'Achrei Mot', he: 'אַחֲרֵי מוֹת', ref: 'Leviticus 16:1-18:30', book: 'Leviticus' },
   { en: 'Kedoshim', he: 'קְדשִׁים', ref: 'Leviticus 19:1-20:27', book: 'Leviticus' },
+  { en: 'Achrei Mot-Kedoshim', he: 'אַחֲרֵי מוֹת-קְדשִׁים', ref: 'Leviticus 16:1-20:27', book: 'Leviticus' },
   { en: 'Emor', he: 'אֱמֹר', ref: 'Leviticus 21:1-24:23', book: 'Leviticus' },
   { en: 'Behar', he: 'בְּהַר', ref: 'Leviticus 25:1-26:2', book: 'Leviticus' },
   { en: 'Bechukotai', he: 'בְּחֻקֹּתַי', ref: 'Leviticus 26:3-27:34', book: 'Leviticus' },
+  { en: 'Behar-Bechukotai', he: 'בְּהַר-בְּחֻקֹּתַי', ref: 'Leviticus 25:1-27:34', book: 'Leviticus' },
   { en: 'Bamidbar', he: 'בְּמִדְבַּר', ref: 'Numbers 1:1-4:20', book: 'Numbers' },
   { en: 'Naso', he: 'נָשֹׂא', ref: 'Numbers 4:21-7:89', book: 'Numbers' },
   { en: 'Behaalotecha', he: 'בְּהַעֲלֹתְךָ', ref: 'Numbers 8:1-12:16', book: 'Numbers' },
@@ -213,9 +264,11 @@ export const STATIC_PARASHOT: Parasha[] = [
   { en: 'Korach', he: 'קֹרַח', ref: 'Numbers 16:1-18:32', book: 'Numbers' },
   { en: 'Chukat', he: 'חֻקַּת', ref: 'Numbers 19:1-22:1', book: 'Numbers' },
   { en: 'Balak', he: 'בָּלָק', ref: 'Numbers 22:2-25:9', book: 'Numbers' },
+  { en: 'Chukat-Balak', he: 'חֻקַּת-בָּלָק', ref: 'Numbers 19:1-25:9', book: 'Numbers' },
   { en: 'Pinchas', he: 'פִּינְחָס', ref: 'Numbers 25:10-30:1', book: 'Numbers' },
   { en: 'Matot', he: 'מַּטּוֹת', ref: 'Numbers 30:2-32:42', book: 'Numbers' },
   { en: 'Masei', he: 'מַסְעֵי', ref: 'Numbers 33:1-36:13', book: 'Numbers' },
+  { en: 'Matot-Masei', he: 'מַּטּוֹת-מַסְעֵי', ref: 'Numbers 30:2-36:13', book: 'Numbers' },
   { en: 'Devarim', he: 'דְּבָרִים', ref: 'Deuteronomy 1:1-3:22', book: 'Deuteronomy' },
   { en: 'Vaetchanan', he: 'וָאֶתְחַנַּן', ref: 'Deuteronomy 3:23-7:11', book: 'Deuteronomy' },
   { en: 'Eikev', he: 'עֵקֶב', ref: 'Deuteronomy 7:12-11:25', book: 'Deuteronomy' },
@@ -225,6 +278,7 @@ export const STATIC_PARASHOT: Parasha[] = [
   { en: 'Ki Tavo', he: 'כִּי-תָבוֹא', ref: 'Deuteronomy 26:1-29:8', book: 'Deuteronomy' },
   { en: 'Nitzavim', he: 'נִצָּבִים', ref: 'Deuteronomy 29:9-30:20', book: 'Deuteronomy' },
   { en: 'Vayeilech', he: 'וַיֵּלֶךְ', ref: 'Deuteronomy 31:1-31:30', book: 'Deuteronomy' },
+  { en: 'Nitzavim-Vayeilech', he: 'נִצָּבִים-וַיֵּלֶךְ', ref: 'Deuteronomy 29:9-31:30', book: 'Deuteronomy' },
   { en: "Ha'azinu", he: 'הַאֲזִינוּ', ref: 'Deuteronomy 32:1-32:52', book: 'Deuteronomy' },
   { en: 'Vezot Haberakhah', he: 'וְזֹאת הַבְּרָכָה', ref: 'Deuteronomy 33:1-34:12', book: 'Deuteronomy' },
 ]
