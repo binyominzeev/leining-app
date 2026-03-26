@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Word } from './types'
 import { parseVerseText, parseSefariaResponse, insertAliyahMarkers } from './utils/hebrew'
-import { fetchSefariaText, fetchAliyot, STATIC_PARASHOT, TANACH_BOOKS } from './utils/sefaria'
+import { fetchSefariaText, fetchAliyot, parseAliyotRefs, fetchParashot, STATIC_PARASHOT, TANACH_BOOKS } from './utils/sefaria'
 import { savePosition, loadPosition, saveHighlights, loadHighlights } from './utils/storage'
 import { updateUrl, parseCurrentUrl } from './utils/url'
 import { usePlayback } from './hooks/usePlayback'
@@ -170,16 +170,26 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const loadText = useCallback(async (ref: string, book: string, chapter: number, startVerse: number, parashaName?: string): Promise<Word[] | null> => {
+  const loadText = useCallback(async (ref: string, book: string, chapter: number, startVerse: number, parashaName?: string, aliyotRefs?: string[]): Promise<Word[] | null> => {
     setLoading(true)
     setError(null)
     try {
       const [data, aliyot] = await Promise.all([
         fetchSefariaText(ref),
-        parashaName ? fetchAliyot(parashaName).catch((err) => {
-          console.warn('Failed to fetch aliyot:', err)
-          return []
-        }) : Promise.resolve([]),
+        (() => {
+          // Prefer year-independent aliyah refs from the Sefaria index API
+          if (aliyotRefs && aliyotRefs.length > 0) {
+            return Promise.resolve(parseAliyotRefs(aliyotRefs))
+          }
+          // Fall back to the calendar-based next-read API (used for combined readings)
+          if (parashaName) {
+            return fetchAliyot(parashaName).catch((err) => {
+              console.warn('Failed to fetch aliyot:', err)
+              return []
+            })
+          }
+          return Promise.resolve([])
+        })(),
       ])
       let parsed = parseSefariaResponse(data.he, chapter, startVerse)
       if (parsed.length === 0) {
@@ -210,14 +220,15 @@ export default function App() {
     const urlRoute = parseCurrentUrl()
     if (urlRoute) {
       if (urlRoute.parashaEn) {
-        // Find the parasha and load its full range
-        const parasha = STATIC_PARASHOT.find((p) => p.en === urlRoute.parashaEn)
-        if (parasha) {
+        // Fetch the parasha list (cached after Navigation's call) to get aliyotRefs
+        fetchParashot().catch(() => STATIC_PARASHOT).then((parashots) => {
+          const parasha = parashots.find((p) => p.en === urlRoute.parashaEn)
+          if (!parasha) return
           const match = parasha.ref.match(/^(.+?)\s+(\d+):(\d+)/)
           const pBook = match ? match[1] : parasha.book
           const pChapter = match ? parseInt(match[2], 10) : 1
           const pVerse = match ? parseInt(match[3], 10) : 1
-          loadText(parasha.ref, pBook, pChapter, pVerse, parasha.en).then((parsed) => {
+          loadText(parasha.ref, pBook, pChapter, pVerse, parasha.en, parasha.aliyotRefs).then((parsed) => {
             if (!parsed) return
             // Jump to the verse specified in the URL, skipping any break/marker words
             const targetIdx = parsed.findIndex(
@@ -225,8 +236,8 @@ export default function App() {
             )
             if (targetIdx >= 0) setCurrentWordIndex(targetIdx)
           })
-          return
-        }
+        })
+        return
       } else if (urlRoute.book) {
         // Manual-mode URL: load the chapter containing the target verse
         const ref = `${urlRoute.book} ${urlRoute.chapter}`
