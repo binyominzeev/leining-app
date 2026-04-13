@@ -42,16 +42,17 @@ export function parseCurrentUrl(): ParsedRoute | null {
 
   if (isNaN(chapter) || isNaN(verse)) return null
 
-  const name = slugToName(slug)
-
-  // Try to match a parasha name (case-insensitive)
+  // Try to match a parasha name by comparing the slug against nameToSlug(p.en).
+  // This correctly handles combined parashiyot like "Tazria-Metzora" whose
+  // names already contain hyphens (slugToName would wrongly convert them to spaces).
   const parasha = STATIC_PARASHOT.find(
-    (p) => p.en.toLowerCase() === name.toLowerCase(),
+    (p) => nameToSlug(p.en).toLowerCase() === slug.toLowerCase(),
   )
   if (parasha) {
     return { parashaEn: parasha.en, book: null, chapter, verse }
   }
 
   // Otherwise treat the first segment as a book name for manual mode
+  const name = slugToName(slug)
   return { parashaEn: null, book: name, chapter, verse }
 }
