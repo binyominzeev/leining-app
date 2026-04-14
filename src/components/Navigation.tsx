@@ -103,13 +103,13 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
           className={mode === 'manual' ? styles.active : ''}
           onClick={() => setMode('manual')}
         >
-          בחר קטע
+          Book / Chapter
         </button>
         <button
           className={mode === 'parasha' ? styles.active : ''}
           onClick={() => setMode('parasha')}
         >
-          פרשת השבוע
+          Weekly Parasha
         </button>
       </div>
 
@@ -145,7 +145,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
             placeholder="מ"
           />
           <button className={styles.loadBtn} onClick={handleManualLoad}>
-            טען
+            Load
           </button>
         </div>
       ) : (
@@ -199,7 +199,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
           </div>
 
           <button className={styles.loadBtn} onClick={handleParashaLoad}>
-            טען
+            Load
           </button>
         </div>
       )}
@@ -210,7 +210,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
           checked={useRashiFont}
           onChange={(e) => onRashiFontChange(e.target.checked)}
         />
-        פונט רש״י
+        Rashi script
       </label>
       {useRashiFont && (
         <label className={styles.rashiSizeLabel}>

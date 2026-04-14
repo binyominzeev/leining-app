@@ -25,7 +25,7 @@ export default function App() {
   const [rashiPracticeText, setRashiPracticeText] = useState('')
   const [rashiFontSize, setRashiFontSize] = useState(2.6)
   const [isLightTheme, setIsLightTheme] = useState(() => {
-    return localStorage.getItem(THEME_STORAGE_KEY) === 'light'
+    return localStorage.getItem(THEME_STORAGE_KEY) !== 'dark'
   })
   const [highlightedWords, setHighlightedWords] = useState<Set<string>>(() => loadHighlights())
   const [isSeferTorahMode, setIsSeferTorahMode] = useState(false)
