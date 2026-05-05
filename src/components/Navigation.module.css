@@ -142,6 +142,29 @@
   color: var(--text-gold);
 }
 
+/* ── Sefaria external link button ────────────────────────────────── */
+
+.sefariaLinkBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  font-size: 0.85rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-accent);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sefariaLinkBtn:hover {
+  background: var(--btn-active-bg);
+  border-color: var(--text-accent);
+}
+
 /* ── Mega-menu parasha selector ─────────────────────────────────────── */
 
 .megaMenuWrapper {

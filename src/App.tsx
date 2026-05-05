@@ -2,7 +2,9 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Word } from './types'
 import { parseVerseText, parseSefariaResponse, insertAliyahMarkers } from './utils/hebrew'
 import { fetchSefariaText, fetchAliyot, parseAliyotRefs, fetchParashot, STATIC_PARASHOT, TANACH_BOOKS } from './utils/sefaria'
-import { savePosition, loadPosition, saveHighlights, loadHighlights } from './utils/storage'
+import { savePosition, loadPosition, saveHighlights, loadHighlights, saveSpeed, loadSpeed } from './utils/storage'
+import { getCurrentUser, loadUserData, saveUserData, logoutUser } from './utils/auth'
+import type { UserData } from './utils/auth'
 import { updateUrl, parseCurrentUrl } from './utils/url'
 import { usePlayback } from './hooks/usePlayback'
 import Navigation from './components/Navigation'
@@ -10,8 +12,9 @@ import TextDisplay from './components/TextDisplay'
 import SeferTorahDisplay from './components/SeferTorahDisplay'
 import Controls from './components/Controls'
 import RashiTextPanel from './components/RashiTextPanel'
+import AuthModal from './components/AuthModal'
 import styles from './App.module.css'
-import { KEYBOARD_SEEK_WORDS } from './config/playbackConfig'
+import { KEYBOARD_SEEK_WORDS, wpmToMs, msToWpm } from './config/playbackConfig'
 
 const THEME_STORAGE_KEY = 'leining-theme'
 
@@ -29,6 +32,20 @@ export default function App() {
   })
   const [highlightedWords, setHighlightedWords] = useState<Set<string>>(() => loadHighlights())
   const [isSeferTorahMode, setIsSeferTorahMode] = useState(false)
+  const [revealAllTaamim, setRevealAllTaamim] = useState(false)
+  const [currentUser, setCurrentUser] = useState<string | null>(() => getCurrentUser())
+  const [showAuthModal, setShowAuthModal] = useState(false)
+
+  // Initial playback speed: load from user profile or anonymous localStorage
+  const [initialSpeed] = useState<number>(() => {
+    const loggedIn = getCurrentUser()
+    if (loggedIn) {
+      const data = loadUserData(loggedIn)
+      if (data) return wpmToMs(data.wpm)
+    }
+    const savedWpm = loadSpeed()
+    return savedWpm ? wpmToMs(savedWpm) : 800
+  })
 
   useEffect(() => {
     if (isLightTheme) {
@@ -104,7 +121,7 @@ export default function App() {
   }, [])
 
   const { currentWordIndex, isPlaying, speed, setCurrentWordIndex, setSpeed, play, pause, toggle } =
-    usePlayback({ words, speed: 800, onWordChange: handleWordChange })
+    usePlayback({ words, speed: initialSpeed, onWordChange: handleWordChange })
 
   const currentWord = words[currentWordIndex] ?? null
   const isRashiMode = useRashiFont && rashiWords.length > 0
@@ -279,6 +296,52 @@ export default function App() {
     })
   }, [])
 
+  // Persist speed changes for the current user (or anonymously)
+  const currentUserRef = useRef(currentUser)
+  useEffect(() => { currentUserRef.current = currentUser }, [currentUser])
+  const handleSpeedChange = useCallback((newSpeed: number) => {
+    setSpeed(newSpeed)
+    const wpm = msToWpm(newSpeed)
+    if (currentUserRef.current) {
+      saveUserData(currentUserRef.current, {
+        highlights: [...highlightedWords],
+        wpm,
+      })
+    } else {
+      saveSpeed(wpm)
+    }
+  }, [setSpeed, highlightedWords])
+
+  // Auth handlers
+  const handleLogin = useCallback((username: string, data: UserData) => {
+    setCurrentUser(username)
+    setHighlightedWords(new Set(data.highlights))
+    saveHighlights(new Set(data.highlights))
+    setSpeed(wpmToMs(data.wpm))
+    setShowAuthModal(false)
+  }, [setSpeed])
+
+  const handleLogout = useCallback(() => {
+    logoutUser()
+    setCurrentUser(null)
+  }, [])
+
+  // When highlights change and a user is logged in, persist to their profile (debounced)
+  const saveUserTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (!currentUser) return
+    if (saveUserTimerRef.current) clearTimeout(saveUserTimerRef.current)
+    saveUserTimerRef.current = setTimeout(() => {
+      saveUserData(currentUser, {
+        highlights: [...highlightedWords],
+        wpm: msToWpm(speed),
+      })
+    }, 500)
+    return () => {
+      if (saveUserTimerRef.current) clearTimeout(saveUserTimerRef.current)
+    }
+  }, [highlightedWords, currentUser, speed])
+
   const handleRashiWordClick = useCallback((index: number) => {
     setRashiCurrentWordIndex(index)
   }, [setRashiCurrentWordIndex])
@@ -315,16 +378,36 @@ export default function App() {
             myshiurim.com
           </a>
         </div>
-        <label className={styles.themeToggle}>
-          <span>☀️</span>
-          <input
-            type="checkbox"
-            checked={isLightTheme}
-            onChange={(e) => setIsLightTheme(e.target.checked)}
-            aria-label="Toggle light theme"
-          />
-        </label>
+        <div className={styles.headerEnd}>
+          {currentUser ? (
+            <div className={styles.userInfo}>
+              <span className={styles.userName}>👤 {currentUser}</span>
+              <button className={styles.authBtn} onClick={handleLogout}>יציאה</button>
+            </div>
+          ) : (
+            <button className={styles.authBtn} onClick={() => setShowAuthModal(true)}>
+              👤 כניסה / הרשמה
+            </button>
+          )}
+          <label className={styles.themeToggle}>
+            <span>☀️</span>
+            <input
+              type="checkbox"
+              checked={isLightTheme}
+              onChange={(e) => setIsLightTheme(e.target.checked)}
+              aria-label="Toggle light theme"
+            />
+          </label>
+        </div>
       </header>
+
+      {showAuthModal && (
+        <AuthModal
+          currentData={{ highlights: [...highlightedWords], wpm: msToWpm(speed) }}
+          onLogin={handleLogin}
+          onClose={() => setShowAuthModal(false)}
+        />
+      )}
 
       <Navigation
         onLoad={loadText}
@@ -333,10 +416,13 @@ export default function App() {
         rashiFontSize={rashiFontSize}
         onRashiFontSizeChange={setRashiFontSize}
         currentBook={bookInfo.book || undefined}
-        currentChapter={bookInfo.chapter}
+        currentChapter={currentWord?.chapter ?? bookInfo.chapter}
+        currentVerse={currentWord?.verse}
         parashaLoaded={!!currentParashaName && words.length > 0}
         seferTorahMode={isSeferTorahMode}
         onSeferTorahModeToggle={() => setIsSeferTorahMode((prev) => !prev)}
+        revealAllTaamim={revealAllTaamim}
+        onRevealAllTaamimToggle={() => setRevealAllTaamim((prev) => !prev)}
       />
 
       <div className={`${styles.main} ${!useRashiFont ? styles.noSidebar : ''}`}>
@@ -365,6 +451,7 @@ export default function App() {
                   bookName={bookInfo.book}
                   highlightedWords={highlightedWords}
                   onToggleHighlight={handleToggleHighlight}
+                  revealAllTaamim={revealAllTaamim}
                   prevNav={hasPrevChapter ? (
                     <button className={styles.chapterNavBtn} onClick={handlePrevChapter}>
                       ◀ פרק קודם
@@ -398,7 +485,7 @@ export default function App() {
         currentWordIndex={isRashiMode ? rashiCurrentWordIndex : currentWordIndex}
         onPlay={isRashiMode ? rashiPlay : play}
         onPause={isRashiMode ? rashiPause : pause}
-        onSpeedChange={isRashiMode ? setRashiSpeed : setSpeed}
+        onSpeedChange={isRashiMode ? setRashiSpeed : handleSpeedChange}
       />
 
       <footer className={styles.footer}>
