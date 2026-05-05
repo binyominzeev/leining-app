@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken')
 const db = require('../db')
 
 const router = express.Router()
+// JWT_SECRET: the fallback is only reached in development since index.js exits
+// in production if the env var is missing. Never deploy without setting JWT_SECRET.
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret'
 const JWT_EXPIRES_IN = '90d'
 const BCRYPT_ROUNDS = 12

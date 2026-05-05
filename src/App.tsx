@@ -87,10 +87,12 @@ export default function App() {
   const currentParashaNameRef = useRef<string | null>(null)
   const bookInfoRef = useRef({ book: '', chapter: 1, startVerse: 1 })
   const lastUrlVerseRef = useRef<{ chapter: number; verse: number } | null>(null)
+  const highlightedWordsRef = useRef(highlightedWords)
 
   useEffect(() => { wordsRef.current = words }, [words])
   useEffect(() => { currentParashaNameRef.current = currentParashaName }, [currentParashaName])
   useEffect(() => { bookInfoRef.current = bookInfo }, [bookInfo])
+  useEffect(() => { highlightedWordsRef.current = highlightedWords }, [highlightedWords])
 
   const handleWordChange = useCallback((index: number) => {
     setWords((prev) =>
@@ -306,7 +308,7 @@ export default function App() {
     if (currentUserRef.current) {
       const cached = loadUserData(currentUserRef.current)
       saveUserData(currentUserRef.current, {
-        highlights: cached?.highlights ?? [],
+        highlights: [...highlightedWordsRef.current],
         wpm,
         position: cached?.position ?? null,
       })
@@ -381,8 +383,8 @@ export default function App() {
   }, [currentWordIndex, currentUser])
 
   // On mount with a logged-in session: refresh data from server in the background.
-  // Empty deps array is intentional — runs exactly once after first render.
-  // `loadText`, `setCurrentWordIndex`, etc. are stable refs or useCallback values.
+  // loadText and setCurrentWordIndex are stable (useCallback/useState setters) so
+  // this runs effectively once, restoring the user's highlights and reading position.
   useEffect(() => {
     const user = getCurrentUser()
     if (!user) return
