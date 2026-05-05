@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken')
 const db = require('../db')
 
 const router = express.Router()
-const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production'
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret'
 const JWT_EXPIRES_IN = '90d'
 const BCRYPT_ROUNDS = 12
 

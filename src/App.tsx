@@ -355,25 +355,34 @@ export default function App() {
   }, [highlightedWords, currentUser, speed])
 
   // Persist reading position to the server for logged-in users (debounced 2 s)
+  // Uses refs for bookInfo so the effect only re-runs when the word index or user changes.
   const savePositionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
-    if (!currentUser || !bookInfo.book) return
+    if (!currentUser || !bookInfoRef.current.book) return
     if (savePositionTimerRef.current) clearTimeout(savePositionTimerRef.current)
     savePositionTimerRef.current = setTimeout(() => {
-      const pos = { book: bookInfo.book, chapter: bookInfo.chapter, verse: bookInfo.startVerse, wordIndex: currentWordIndex }
+      if (!bookInfoRef.current.book) return
+      const pos = {
+        book: bookInfoRef.current.book,
+        chapter: bookInfoRef.current.chapter,
+        verse: bookInfoRef.current.startVerse,
+        wordIndex: currentWordIndex,
+      }
       const cached = loadUserData(currentUser)
       saveUserData(currentUser, {
-        highlights: cached?.highlights ?? [...highlightedWords],
-        wpm: cached?.wpm ?? msToWpm(speed),
+        highlights: cached?.highlights ?? [],
+        wpm: cached?.wpm ?? 75,
         position: pos,
       })
     }, 2000)
     return () => {
       if (savePositionTimerRef.current) clearTimeout(savePositionTimerRef.current)
     }
-  }, [currentWordIndex, currentUser, bookInfo]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentWordIndex, currentUser])
 
-  // On mount with a logged-in session: refresh data from server in the background
+  // On mount with a logged-in session: refresh data from server in the background.
+  // Empty deps array is intentional — runs exactly once after first render.
+  // `loadText`, `setCurrentWordIndex`, etc. are stable refs or useCallback values.
   useEffect(() => {
     const user = getCurrentUser()
     if (!user) return
@@ -389,7 +398,7 @@ export default function App() {
         })
       }
     })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadText, setCurrentWordIndex])
 
   const handleRashiWordClick = useCallback((index: number) => {
     setRashiCurrentWordIndex(index)
