@@ -13,11 +13,12 @@ type Props = {
   bookName?: string
   highlightedWords?: Set<string>
   onToggleHighlight?: (wordKey: string) => void
+  revealAllTaamim?: boolean
   prevNav?: React.ReactNode
   nextNav?: React.ReactNode
 }
 
-export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize, rashiPractice, bookName, highlightedWords, onToggleHighlight, prevNav, nextNav }: Props) {
+export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize, rashiPractice, bookName, highlightedWords, onToggleHighlight, revealAllTaamim, prevNav, nextNav }: Props) {
   const activeRef = useRef<HTMLSpanElement | null>(null)
 
   // Autoscroll: keep active word visible
@@ -64,7 +65,7 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
 
         const displayText = rashiPractice
           ? (isActive ? word.full : word.plain)
-          : (isPast || isActive ? word.full : word.plain)
+          : (revealAllTaamim || isPast || isActive ? word.full : word.plain)
 
         const posInVerse = posInVerseMap.get(word.index) ?? 0
         const wordKey = `${bookName ?? ''}|${word.chapter ?? 0}|${word.verse ?? 0}|${posInVerse}`

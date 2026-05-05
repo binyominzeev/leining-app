@@ -20,14 +20,27 @@ type Props = {
   onRashiFontSizeChange: (size: number) => void
   currentBook?: string
   currentChapter?: number
+  currentVerse?: number
   parashaLoaded?: boolean
   seferTorahMode?: boolean
   onSeferTorahModeToggle?: () => void
+  revealAllTaamim?: boolean
+  onRevealAllTaamimToggle?: () => void
 }
 
 type Mode = 'manual' | 'parasha'
 
-export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange, currentBook, currentChapter, parashaLoaded, seferTorahMode, onSeferTorahModeToggle }: Props) {
+/** Build a Sefaria URL for a given book, chapter and verse.
+ *  Sefaria URLs use underscores for spaces in book names, e.g.
+ *  https://www.sefaria.org/I_Samuel.1.1
+ */
+function sefariaUrl(book: string, chapter: number, verse: number): string {
+  // Sefaria uses underscores in book-name slugs (not %20 or +)
+  const bookSlug = book.replace(/ /g, '_')
+  return `https://www.sefaria.org/${bookSlug}.${chapter}.${verse}`
+}
+
+export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange, currentBook, currentChapter, currentVerse, parashaLoaded, seferTorahMode, onSeferTorahModeToggle, revealAllTaamim, onRevealAllTaamimToggle }: Props) {
   const [mode, setMode] = useState<Mode>('manual')
   const [book, setBook] = useState('Genesis')
   const [chapter, setChapter] = useState(1)
@@ -237,6 +250,29 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
         >
           📜
         </button>
+      )}
+
+      {onRevealAllTaamimToggle && (
+        <button
+          className={[styles.seferTorahBtn, revealAllTaamim ? styles.seferTorahBtnActive : ''].filter(Boolean).join(' ')}
+          onClick={onRevealAllTaamimToggle}
+          title={revealAllTaamim ? 'חזרה למצב רגיל' : 'הצג כל המילים עם טעמים'}
+          aria-pressed={revealAllTaamim}
+        >
+          {revealAllTaamim ? 'הסתר' : 'הצג הכל'}
+        </button>
+      )}
+
+      {currentBook && currentChapter != null && currentVerse != null && (
+        <a
+          className={styles.sefariaLinkBtn}
+          href={sefariaUrl(currentBook, currentChapter, currentVerse)}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`פתח ב-Sefaria: ${currentBook} ${currentChapter}:${currentVerse}`}
+        >
+          🔗 Sefaria
+        </a>
       )}
     </div>
   )
