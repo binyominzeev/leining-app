@@ -213,10 +213,24 @@
 .sefariaLink {
   color: var(--text-accent);
   text-decoration: none;
+  vertical-align: middle;
 }
 
 .sefariaLink:hover {
   text-decoration: underline;
+}
+
+.sefariaLogo {
+  height: 22px;
+  width: auto;
+  vertical-align: middle;
+  display: inline-block;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+
+.sefariaLink:hover .sefariaLogo {
+  opacity: 1;
 }
 
 /* Mobile: compact layout so more text is visible */
