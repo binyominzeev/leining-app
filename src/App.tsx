@@ -3,7 +3,7 @@ import type { Word } from './types'
 import { parseVerseText, parseSefariaResponse, insertAliyahMarkers } from './utils/hebrew'
 import { fetchSefariaText, fetchAliyot, parseAliyotRefs, fetchParashot, STATIC_PARASHOT, TANACH_BOOKS } from './utils/sefaria'
 import { savePosition, loadPosition, saveHighlights, loadHighlights, saveSpeed, loadSpeed } from './utils/storage'
-import { getCurrentUser, loadUserData, saveUserData, logoutUser } from './utils/auth'
+import { getCurrentUser, loadUserData, saveUserData, logoutUser, refreshUserData } from './utils/auth'
 import type { UserData } from './utils/auth'
 import { updateUrl, parseCurrentUrl } from './utils/url'
 import { usePlayback } from './hooks/usePlayback'
@@ -16,6 +16,7 @@ import AuthModal from './components/AuthModal'
 import TaamVideoPanel from './components/TaamVideoPanel'
 import { buildVideoTimeline } from './utils/taamSequences'
 import styles from './App.module.css'
+import sefariaLogo from './assets/powered-by-sefaria.svg'
 import { KEYBOARD_SEEK_WORDS, wpmToMs, msToWpm } from './config/playbackConfig'
 
 const THEME_STORAGE_KEY = 'leining-theme'
@@ -91,10 +92,12 @@ export default function App() {
   const currentParashaNameRef = useRef<string | null>(null)
   const bookInfoRef = useRef({ book: '', chapter: 1, startVerse: 1 })
   const lastUrlVerseRef = useRef<{ chapter: number; verse: number } | null>(null)
+  const highlightedWordsRef = useRef(highlightedWords)
 
   useEffect(() => { wordsRef.current = words }, [words])
   useEffect(() => { currentParashaNameRef.current = currentParashaName }, [currentParashaName])
   useEffect(() => { bookInfoRef.current = bookInfo }, [bookInfo])
+  useEffect(() => { highlightedWordsRef.current = highlightedWords }, [highlightedWords])
 
   const handleWordChange = useCallback((index: number) => {
     setWords((prev) =>
@@ -324,14 +327,16 @@ export default function App() {
     setSpeed(newSpeed)
     const wpm = msToWpm(newSpeed)
     if (currentUserRef.current) {
+      const cached = loadUserData(currentUserRef.current)
       saveUserData(currentUserRef.current, {
-        highlights: [...highlightedWords],
+        highlights: [...highlightedWordsRef.current],
         wpm,
+        position: cached?.position ?? null,
       })
     } else {
       saveSpeed(wpm)
     }
-  }, [setSpeed, highlightedWords])
+  }, [setSpeed])
 
   // Auth handlers
   const handleLogin = useCallback((username: string, data: UserData) => {
@@ -340,28 +345,83 @@ export default function App() {
     saveHighlights(new Set(data.highlights))
     setSpeed(wpmToMs(data.wpm))
     setShowAuthModal(false)
-  }, [setSpeed])
+    // Restore server-side position if no text is currently loaded
+    if (data.position && wordsRef.current.length === 0) {
+      const { book, chapter, verse, wordIndex } = data.position
+      loadText(`${book} ${chapter}:${verse}`, book, chapter, verse).then((parsed) => {
+        if (parsed) setCurrentWordIndex(wordIndex)
+      })
+    }
+  }, [setSpeed, loadText, setCurrentWordIndex])
 
   const handleLogout = useCallback(() => {
     logoutUser()
     setCurrentUser(null)
   }, [])
 
-  // When highlights change and a user is logged in, persist to their profile (debounced)
+  // When highlights or speed change and a user is logged in, persist to their profile (debounced)
   const saveUserTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (!currentUser) return
     if (saveUserTimerRef.current) clearTimeout(saveUserTimerRef.current)
     saveUserTimerRef.current = setTimeout(() => {
+      const cached = loadUserData(currentUser)
       saveUserData(currentUser, {
         highlights: [...highlightedWords],
         wpm: msToWpm(speed),
+        position: cached?.position ?? null,
       })
     }, 500)
     return () => {
       if (saveUserTimerRef.current) clearTimeout(saveUserTimerRef.current)
     }
   }, [highlightedWords, currentUser, speed])
+
+  // Persist reading position to the server for logged-in users (debounced 2 s)
+  // Uses refs for bookInfo so the effect only re-runs when the word index or user changes.
+  const savePositionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (!currentUser || !bookInfoRef.current.book) return
+    if (savePositionTimerRef.current) clearTimeout(savePositionTimerRef.current)
+    savePositionTimerRef.current = setTimeout(() => {
+      if (!bookInfoRef.current.book) return
+      const pos = {
+        book: bookInfoRef.current.book,
+        chapter: bookInfoRef.current.chapter,
+        verse: bookInfoRef.current.startVerse,
+        wordIndex: currentWordIndex,
+      }
+      const cached = loadUserData(currentUser)
+      saveUserData(currentUser, {
+        highlights: cached?.highlights ?? [],
+        wpm: cached?.wpm ?? 75,
+        position: pos,
+      })
+    }, 2000)
+    return () => {
+      if (savePositionTimerRef.current) clearTimeout(savePositionTimerRef.current)
+    }
+  }, [currentWordIndex, currentUser])
+
+  // On mount with a logged-in session: refresh data from server in the background.
+  // loadText and setCurrentWordIndex are stable (useCallback/useState setters) so
+  // this runs effectively once, restoring the user's highlights and reading position.
+  useEffect(() => {
+    const user = getCurrentUser()
+    if (!user) return
+    refreshUserData(user).then((data) => {
+      if (!data) return
+      setHighlightedWords(new Set(data.highlights))
+      saveHighlights(new Set(data.highlights))
+      // Only restore server position if no text is currently displayed
+      if (data.position && wordsRef.current.length === 0) {
+        const { book, chapter, verse, wordIndex } = data.position
+        loadText(`${book} ${chapter}:${verse}`, book, chapter, verse).then((parsed) => {
+          if (parsed) setCurrentWordIndex(wordIndex)
+        })
+      }
+    })
+  }, [loadText, setCurrentWordIndex])
 
   const handleRashiWordClick = useCallback((index: number) => {
     setRashiCurrentWordIndex(index)
@@ -524,15 +584,15 @@ export default function App() {
       />
 
       <footer className={styles.footer}>
-        Powered by{' '}
         <a
           href="https://www.sefaria.org"
           target="_blank"
           rel="noopener noreferrer"
           className={styles.sefariaLink}
         >
-          Sefaria
-        </a> | Visit on <a href="https://github.com/binyominzeev/leining-app" target="_blank" rel="noopener noreferrer" className={styles.sefariaLink}>
+          <img src={sefariaLogo} alt="Powered by Sefaria" className={styles.sefariaLogo} />
+        </a>
+        {' | '}Visit on <a href="https://github.com/binyominzeev/leining-app" target="_blank" rel="noopener noreferrer" className={styles.sefariaLink}>
           GitHub
         </a>
       </footer>

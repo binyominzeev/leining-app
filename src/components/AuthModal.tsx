@@ -34,6 +34,7 @@ export default function AuthModal({ currentData, onLogin, onClose }: Props) {
       } else {
         const result = await registerUser(trimmed, password, currentData)
         if (result === 'exists') { setError('שם משתמש תפוס, בחר אחר'); return }
+        if (result === 'network_error') { setError('שגיאת חיבור לשרת. אנא נסה שוב.'); return }
         onLogin(trimmed.toLowerCase(), currentData)
       }
     } finally {
@@ -98,7 +99,7 @@ export default function AuthModal({ currentData, onLogin, onClose }: Props) {
 
         {tab === 'register' && (
           <p className={styles.note}>
-            הנתונים נשמרים רק במכשיר זה (localStorage).
+            הנתונים נשמרים בשרת ומסונכרנים בין המכשירים שלך.
           </p>
         )}
       </div>
