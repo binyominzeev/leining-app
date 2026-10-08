@@ -13,10 +13,13 @@ import SeferTorahDisplay from './components/SeferTorahDisplay'
 import Controls from './components/Controls'
 import RashiTextPanel from './components/RashiTextPanel'
 import AuthModal from './components/AuthModal'
+import TaamVideoPanel from './components/TaamVideoPanel'
+import { buildVideoTimeline } from './utils/taamSequences'
 import styles from './App.module.css'
 import { KEYBOARD_SEEK_WORDS, wpmToMs, msToWpm } from './config/playbackConfig'
 
 const THEME_STORAGE_KEY = 'leining-theme'
+const TAAM_VIDEO_STORAGE_KEY = 'leining-taam-video'
 
 export default function App() {
   const [words, setWords] = useState<Word[]>([])
@@ -33,6 +36,8 @@ export default function App() {
   const [highlightedWords, setHighlightedWords] = useState<Set<string>>(() => loadHighlights())
   const [isSeferTorahMode, setIsSeferTorahMode] = useState(false)
   const [revealAllTaamim, setRevealAllTaamim] = useState(false)
+  const [showShvaNa, setShowShvaNa] = useState(false)
+  const [showTaamVideo, setShowTaamVideo] = useState(() => localStorage.getItem(TAAM_VIDEO_STORAGE_KEY) === '1')
   const [currentUser, setCurrentUser] = useState<string | null>(() => getCurrentUser())
   const [showAuthModal, setShowAuthModal] = useState(false)
 
@@ -124,6 +129,22 @@ export default function App() {
     usePlayback({ words, speed: initialSpeed, onWordChange: handleWordChange })
 
   const currentWord = words[currentWordIndex] ?? null
+
+  const videoTimeline = useMemo(() => buildVideoTimeline(words), [words])
+  const videoMatch = videoTimeline.get(currentWordIndex) ?? null
+  const nextVideoUrl = useMemo(() => {
+    const end = videoMatch ? videoMatch.wordIndices[videoMatch.length - 1] : currentWordIndex
+    for (let i = end + 1; i < Math.min(words.length, end + 40); i++) {
+      const m = videoTimeline.get(i)
+      if (m) return m.url
+    }
+    return null
+  }, [videoTimeline, videoMatch, currentWordIndex, words.length])
+
+  const handleTaamVideoChange = useCallback((value: boolean) => {
+    setShowTaamVideo(value)
+    localStorage.setItem(TAAM_VIDEO_STORAGE_KEY, value ? '1' : '0')
+  }, [])
   const isRashiMode = useRashiFont && rashiWords.length > 0
 
   // Update browser tab title to reflect current position
@@ -423,6 +444,10 @@ export default function App() {
         onSeferTorahModeToggle={() => setIsSeferTorahMode((prev) => !prev)}
         revealAllTaamim={revealAllTaamim}
         onRevealAllTaamimToggle={() => setRevealAllTaamim((prev) => !prev)}
+        showShvaNa={showShvaNa}
+        onShowShvaNaChange={setShowShvaNa}
+        showTaamVideo={showTaamVideo}
+        onShowTaamVideoChange={handleTaamVideoChange}
       />
 
       <div className={`${styles.main} ${!useRashiFont ? styles.noSidebar : ''}`}>
@@ -448,6 +473,7 @@ export default function App() {
                   currentWordIndex={currentWordIndex}
                   onWordClick={handleWordClick}
                   useRashiFont={useRashiFont}
+                  showShvaNa={showShvaNa}
                   bookName={bookInfo.book}
                   highlightedWords={highlightedWords}
                   onToggleHighlight={handleToggleHighlight}
@@ -477,6 +503,15 @@ export default function App() {
           </aside>
         )}
       </div>
+
+      {showTaamVideo && !isRashiMode && !isSeferTorahMode && (
+        <TaamVideoPanel
+          match={videoMatch}
+          nextUrl={nextVideoUrl}
+          msPerWord={speed}
+          isPlaying={isPlaying}
+        />
+      )}
 
       <Controls
         isPlaying={isRashiMode ? rashiIsPlaying : isPlaying}

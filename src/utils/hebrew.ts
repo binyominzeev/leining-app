@@ -1,5 +1,135 @@
-import type { Word } from '../types'
+import type { ShvaAnnotation, Word } from '../types'
 import type { AliyahMarker } from './sefaria'
+
+const SHVA = '\u05B0'
+const DAGESH = '\u05BC'
+
+type VowelType = 'none' | 'shva' | 'short' | 'long' | 'hatef'
+
+type LetterCluster = {
+  letterIndex: number
+  base: string
+  marks: string[]
+  markIndices: number[]
+}
+
+const HATEF_VOWELS = new Set(['\u05B1', '\u05B2', '\u05B3'])
+const SHORT_VOWELS = new Set(['\u05B4', '\u05B6', '\u05B7', '\u05BB', '\u05C7'])
+const LONG_VOWELS = new Set(['\u05B5', '\u05B8', '\u05B9'])
+
+function isHebrewLetter(char: string): boolean {
+  return /^[\u05D0-\u05EA]$/.test(char)
+}
+
+function isHebrewMark(char: string): boolean {
+  return /^[\u0591-\u05C7]$/.test(char)
+}
+
+function toClusters(text: string): LetterCluster[] {
+  const chars = Array.from(text)
+  const clusters: LetterCluster[] = []
+
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i]
+    if (isHebrewLetter(ch)) {
+      clusters.push({
+        letterIndex: clusters.length,
+        base: ch,
+        marks: [],
+        markIndices: [],
+      })
+      continue
+    }
+    if (isHebrewMark(ch) && clusters.length > 0) {
+      const last = clusters[clusters.length - 1]
+      last.marks.push(ch)
+      last.markIndices.push(i)
+    }
+  }
+
+  return clusters
+}
+
+function clusterHasMark(cluster: LetterCluster | undefined, mark: string): boolean {
+  if (!cluster) return false
+  return cluster.marks.includes(mark)
+}
+
+function getVowelType(cluster: LetterCluster | undefined): VowelType {
+  if (!cluster) return 'none'
+
+  let found: VowelType = 'none'
+  for (const mark of cluster.marks) {
+    if (mark === SHVA) return 'shva'
+    if (HATEF_VOWELS.has(mark)) found = 'hatef'
+    else if (SHORT_VOWELS.has(mark)) found = 'short'
+    else if (LONG_VOWELS.has(mark)) found = found === 'hatef' ? 'hatef' : 'long'
+  }
+
+  // Shuruk is written as vav + dagesh without an additional niqqud mark.
+  if (found === 'none' && cluster.base === '\u05D5' && clusterHasMark(cluster, DAGESH)) {
+    return 'long'
+  }
+
+  return found
+}
+
+function classifyShva(cluster: LetterCluster, clusters: LetterCluster[]): Omit<ShvaAnnotation, 'charIndex'> {
+  const idx = cluster.letterIndex
+  const prev = clusters[idx - 1]
+  const next = clusters[idx + 1]
+  const prevHasShva = clusterHasMark(prev, SHVA)
+  const nextHasShva = clusterHasMark(next, SHVA)
+
+  if (idx === 0) {
+    return { letterIndex: idx, type: 'na', confidence: 'high', rule: 'word-initial-shva' }
+  }
+  if (nextHasShva) {
+    return { letterIndex: idx, type: 'nach', confidence: 'high', rule: 'first-of-double-shva' }
+  }
+  if (prevHasShva) {
+    return { letterIndex: idx, type: 'na', confidence: 'high', rule: 'second-of-double-shva' }
+  }
+  if (idx === clusters.length - 1) {
+    return { letterIndex: idx, type: 'nach', confidence: 'high', rule: 'word-final-shva' }
+  }
+  if (clusterHasMark(cluster, DAGESH)) {
+    return { letterIndex: idx, type: 'na', confidence: 'medium', rule: 'dagesh-on-shva-letter' }
+  }
+
+  const prevVowel = getVowelType(prev)
+  if (prevVowel === 'long' || prevVowel === 'hatef') {
+    return { letterIndex: idx, type: 'na', confidence: 'medium', rule: 'after-long-or-hatef-vowel' }
+  }
+  if (prevVowel === 'short') {
+    return { letterIndex: idx, type: 'nach', confidence: 'medium', rule: 'after-short-vowel' }
+  }
+
+  return { letterIndex: idx, type: 'uncertain', confidence: 'medium', rule: 'fallback-uncertain' }
+}
+
+/**
+ * Analyze shva (U+05B0) positions in a word and classify each occurrence.
+ * Rules are deterministic and ordered by priority.
+ */
+export function analyzeShva(text: string): ShvaAnnotation[] {
+  const clusters = toClusters(text)
+  const annotations: ShvaAnnotation[] = []
+
+  for (const cluster of clusters) {
+    for (let mi = 0; mi < cluster.marks.length; mi++) {
+      const mark = cluster.marks[mi]
+      if (mark !== SHVA) continue
+      const base = classifyShva(cluster, clusters)
+      annotations.push({
+        ...base,
+        charIndex: cluster.markIndices[mi],
+      })
+    }
+  }
+
+  return annotations
+}
 
 /**
  * Parse a Sefaria API 'he' field (string, string[], or string[][]) into Word
@@ -43,6 +173,7 @@ export function parseSefariaResponse(
         plain: stripDiacritics(stripped),
         full: stripped,
         taam: extractTaam(stripped),
+        shvaAnnotations: analyzeShva(stripped),
         revealed: false,
         chapter,
         verse,
@@ -121,6 +252,7 @@ export function parseVerseText(verseText: string | string[]): Word[] {
     plain: stripDiacritics(full),
     full,
     taam: extractTaam(full),
+    shvaAnnotations: analyzeShva(full),
     revealed: false,
   }))
 }

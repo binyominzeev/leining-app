@@ -70,6 +70,13 @@
   border-bottom: 2px solid rgba(255, 180, 0, 0.7);
 }
 
+.shvaNaOverline {
+  text-decoration-line: overline;
+  text-decoration-color: var(--text-gold);
+  text-decoration-thickness: 0.08em;
+  text-decoration-skip-ink: none;
+}
+
 /* Aliyah section markers (שני, שלישי, etc.) */
 .aliyahMarker {
   display: inline-block;

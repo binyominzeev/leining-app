@@ -26,6 +26,10 @@ type Props = {
   onSeferTorahModeToggle?: () => void
   revealAllTaamim?: boolean
   onRevealAllTaamimToggle?: () => void
+  showShvaNa?: boolean
+  onShowShvaNaChange?: (value: boolean) => void
+  showTaamVideo?: boolean
+  onShowTaamVideoChange?: (value: boolean) => void
 }
 
 type Mode = 'manual' | 'parasha'
@@ -40,7 +44,7 @@ function sefariaUrl(book: string, chapter: number, verse: number): string {
   return `https://www.sefaria.org/${bookSlug}.${chapter}.${verse}`
 }
 
-export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange, currentBook, currentChapter, currentVerse, parashaLoaded, seferTorahMode, onSeferTorahModeToggle, revealAllTaamim, onRevealAllTaamimToggle }: Props) {
+export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange, currentBook, currentChapter, currentVerse, parashaLoaded, seferTorahMode, onSeferTorahModeToggle, revealAllTaamim, onRevealAllTaamimToggle, showShvaNa, onShowShvaNaChange, showTaamVideo, onShowTaamVideoChange }: Props) {
   const [mode, setMode] = useState<Mode>('manual')
   const [book, setBook] = useState('Genesis')
   const [chapter, setChapter] = useState(1)
@@ -261,6 +265,28 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
         >
           {revealAllTaamim ? 'הסתר' : 'הצג הכל'}
         </button>
+      )}
+
+      {onShowShvaNaChange && (
+        <label className={styles.rashiCheckbox} title="סימון שווא נע בתצוגת לימוד">
+          <input
+            type="checkbox"
+            checked={!!showShvaNa}
+            onChange={(e) => onShowShvaNaChange(e.target.checked)}
+          />
+          שווא נע
+        </label>
+      )}
+
+      {onShowTaamVideoChange && (
+        <label className={styles.rashiCheckbox} title="הצג סרטון תנועות ידיים לטעמים">
+          <input
+            type="checkbox"
+            checked={!!showTaamVideo}
+            onChange={(e) => onShowTaamVideoChange(e.target.checked)}
+          />
+          סרטון טעמים
+        </label>
       )}
 
       {currentBook && currentChapter != null && currentVerse != null && (

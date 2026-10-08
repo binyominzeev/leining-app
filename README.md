@@ -27,6 +27,27 @@ Sefer Torah mode (with aliyos showing):
 
 <img width="1920" height="1080" alt="Screenshot from 2026-03-26 23-43-34" src="https://github.com/user-attachments/assets/47756a5a-7815-4f60-bb43-e31fa2f8a402" />
 
+## Hand-sign (trop) videos
+
+While reading, the app converts each word's ta'am to a hand-sign name (e.g. `mercha`, `tipcha`, `etnachta`) and plays the clip matching the **longest sequence** that starts at the current word (within one verse). Enable it with the "סרטון טעמים" checkbox.
+
+### Adding a clip
+
+1. Name the file after the sequence, signs joined by `_`, lowercase: `src/assets/taam-videos/mercha_tipcha_etnachta.mp4`. A single sign is a one-element sequence: `munach.mp4`.
+2. Drop it into `src/assets/taam-videos/` (`.mp4` or `.webm`). Files starting with `_` are ignored.
+3. Restart `npm run dev` (or rebuild). No code changes or manifest needed.
+
+Sign names (also in `TAAM_SLUGS` in `src/utils/taamim.ts`): etnachta, segol, shalshelet, zakef-katon, zakef-gadol, tipcha, revia, zarka, pashta, yetiv, tevir, geresh, geresh-muqdam, gershayim, karnei-para, telisha-gedola, pazer, etnachta-hafuch, munach, mapach, mercha, mercha-kefula, darga, kadma, telisha-ketana, yerach-ben-yomo, ole, iluy, dechi, zinor, and `silluk` (last word of a verse). Example sequence: `mercha_tipcha_etnachta`.
+
+### Recommended format
+
+MP4 (H.264, `yuv420p`, no audio), 480p, 30 fps, 2–5 s, short keyframe interval for fast starts and switching. The same framing and background in every clip avoids visual jumps. The clip's playback rate is adjusted (0.5×–2×) to fit the current reading speed.
+
+```bash
+ffmpeg -i in.mov -an -vf scale=-2:480 -r 30 -c:v libx264 -pix_fmt yuv420p \
+  -crf 26 -g 15 -movflags +faststart mercha_tipcha_etnachta.mp4
+```
+
 ## Tech Stack
 
 | Layer | Technology |

@@ -10,6 +10,7 @@ type Props = {
   useRashiFont?: boolean
   fontSize?: string
   rashiPractice?: boolean
+  showShvaNa?: boolean
   bookName?: string
   highlightedWords?: Set<string>
   onToggleHighlight?: (wordKey: string) => void
@@ -18,7 +19,60 @@ type Props = {
   nextNav?: React.ReactNode
 }
 
-export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize, rashiPractice, bookName, highlightedWords, onToggleHighlight, revealAllTaamim, prevNav, nextNav }: Props) {
+type TextCluster = {
+  text: string
+  letterIndex: number | null
+}
+
+function renderWithShvaNaHighlight(word: Word, displayText: string) {
+  if (displayText !== word.full || !word.shvaAnnotations || word.shvaAnnotations.length === 0) {
+    return displayText
+  }
+
+  const shvaNaLetterIndexes = new Set(
+    word.shvaAnnotations
+      .filter((item) => item.type === 'na' && item.letterIndex > 0)
+      .map((item) => item.letterIndex),
+  )
+
+  if (shvaNaLetterIndexes.size === 0) return displayText
+
+  const chars = Array.from(displayText)
+  const clusters: TextCluster[] = []
+  let letterCounter = -1
+
+  for (const ch of chars) {
+    const isLetter = /[\u05D0-\u05EA]/.test(ch)
+    const isMark = /[\u0591-\u05C7]/.test(ch)
+
+    if (isLetter) {
+      letterCounter += 1
+      clusters.push({ text: ch, letterIndex: letterCounter })
+      continue
+    }
+
+    if (isMark && clusters.length > 0 && clusters[clusters.length - 1].letterIndex !== null) {
+      clusters[clusters.length - 1].text += ch
+      continue
+    }
+
+    clusters.push({ text: ch, letterIndex: null })
+  }
+
+  return clusters.map((cluster, idx) => {
+    if (cluster.letterIndex !== null && shvaNaLetterIndexes.has(cluster.letterIndex)) {
+      return (
+        <span key={`cluster-${word.index}-${idx}`} className={styles.shvaNaOverline}>
+          {cluster.text}
+        </span>
+      )
+    }
+
+    return <Fragment key={`cluster-${word.index}-${idx}`}>{cluster.text}</Fragment>
+  })
+}
+
+export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize, rashiPractice, showShvaNa, bookName, highlightedWords, onToggleHighlight, revealAllTaamim, prevNav, nextNav }: Props) {
   const activeRef = useRef<HTMLSpanElement | null>(null)
 
   // Autoscroll: keep active word visible
@@ -66,6 +120,9 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
         const displayText = rashiPractice
           ? (isActive ? word.full : word.plain)
           : (revealAllTaamim || isPast || isActive ? word.full : word.plain)
+        const content = showShvaNa && !rashiPractice
+          ? renderWithShvaNaHighlight(word, displayText)
+          : displayText
 
         const posInVerse = posInVerseMap.get(word.index) ?? 0
         const wordKey = `${bookName ?? ''}|${word.chapter ?? 0}|${word.verse ?? 0}|${posInVerse}`
@@ -98,7 +155,7 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
                 if (e.key === ' ') e.preventDefault()
               }}
             >
-              {displayText}
+              {content}
             </span>
             {' '}
           </Fragment>

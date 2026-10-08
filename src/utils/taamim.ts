@@ -84,3 +84,42 @@ export const TAAM_NAMES: Record<string, string> = {
   '\u05C0': 'סוֹף פָּסוּק',
   '\u05BE': 'מַקָּף',
 }
+
+/**
+ * Phonetic (Ashkenazi-style) hand-sign names, used as video filename parts.
+ * Silluk (U+05BD) is only a trop at the end of a verse; see taamSequences.ts.
+ */
+export const SILLUK_SLUG = 'silluk'
+
+export const TAAM_SLUGS: Record<string, string> = {
+  '\u0591': 'etnachta',
+  '\u0592': 'segol',
+  '\u0593': 'shalshelet',
+  '\u0594': 'zakef-katon',
+  '\u0595': 'zakef-gadol',
+  '\u0596': 'tipcha',
+  '\u0597': 'revia',
+  '\u0598': 'zarka',
+  '\u0599': 'pashta',
+  '\u059A': 'yetiv',
+  '\u059B': 'tevir',
+  '\u059C': 'geresh',
+  '\u059D': 'geresh-muqdam',
+  '\u059E': 'gershayim',
+  '\u059F': 'karnei-para',
+  '\u05A0': 'telisha-gedola',
+  '\u05A1': 'pazer',
+  '\u05A2': 'etnachta-hafuch',
+  '\u05A3': 'munach',
+  '\u05A4': 'mapach',
+  '\u05A5': 'mercha',
+  '\u05A6': 'mercha-kefula',
+  '\u05A7': 'darga',
+  '\u05A8': 'kadma',
+  '\u05A9': 'telisha-ketana',
+  '\u05AA': 'yerach-ben-yomo',
+  '\u05AB': 'ole',
+  '\u05AC': 'iluy',
+  '\u05AD': 'dechi',
+  '\u05AE': 'zinor',
+}
