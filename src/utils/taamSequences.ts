@@ -28,12 +28,14 @@ for (const [path, url] of Object.entries(files)) {
 
 const MAX_LEN = Math.max(1, ...[...VIDEO_SEQUENCES.keys()].map((k) => k.split('_').length))
 
-const TAAM_RE = /[\u0591-\u05AF]/
+const TAAM_RE = /[\u0591-\u05AF]/g
 
 /** Hand-sign slug of a word, or null if it carries no trop. */
 function wordSlug(word: Word, isLastOfVerse: boolean): string | null {
-  const m = word.full.match(TAAM_RE)
-  if (m) return TAAM_SLUGS[m[0]] ?? null
+  const marks = word.full.match(TAAM_RE) ?? []
+  // On a word with multiple marks, Mercha is ornamental when another mark follows it.
+  const mark = marks[0] === '\u05A5' && marks.length > 1 ? marks[1] : marks[0]
+  if (mark) return TAAM_SLUGS[mark] ?? null
   if (isLastOfVerse && word.full.includes('\u05BD')) return SILLUK_SLUG
   return null
 }

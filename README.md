@@ -30,7 +30,7 @@ Sefer Torah mode (with aliyos showing):
 
 ## Hand-sign (trop) videos
 
-While reading, the app converts each word's ta'am to a hand-sign name (e.g. `mercha`, `tipcha`, `etnachta`) and plays the clip matching the **longest sequence** that starts at the current word (within one verse). Enable it with the "סרטון טעמים" checkbox.
+While reading, the app converts each word's ta'am to a hand-sign name (e.g. `mercha`, `tipcha`, `etnachta`) and plays the clip matching the **longest sequence** that starts at the current word (within one verse). If Mercha is followed by another cantillation mark on the same word, Mercha is ignored for video playback. Enable it with the "סרטון טעמים" checkbox.
 
 ### Adding a clip
 
@@ -317,4 +317,3 @@ Consider scheduling this with cron.
 ## License
 
 This project is private. All rights reserved.
-
