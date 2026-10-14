@@ -22,6 +22,16 @@ import { KEYBOARD_SEEK_WORDS, wpmToMs, msToWpm } from './config/playbackConfig'
 const THEME_STORAGE_KEY = 'leining-theme'
 const TAAM_VIDEO_STORAGE_KEY = 'leining-taam-video'
 
+function getVerseKeyAtIndex(words: Word[], index: number): string | null {
+  const target =
+    words.find((word) => word.index === index && !word.breakType) ??
+    words.find((word) => word.index >= index && !word.breakType) ??
+    [...words].reverse().find((word) => !word.breakType)
+
+  if (!target || target.verse === undefined) return null
+  return `${target.chapter ?? 0}:${target.verse}`
+}
+
 export default function App() {
   const [words, setWords] = useState<Word[]>([])
   const [loading, setLoading] = useState(false)
@@ -35,6 +45,7 @@ export default function App() {
     return localStorage.getItem(THEME_STORAGE_KEY) !== 'dark'
   })
   const [highlightedWords, setHighlightedWords] = useState<Set<string>>(() => loadHighlights())
+  const [practiceVerseRange, setPracticeVerseRange] = useState<{ start: string; end: string } | null>(null)
   const [isSeferTorahMode, setIsSeferTorahMode] = useState(false)
   const [revealAllTaamim, setRevealAllTaamim] = useState(false)
   const [showShvaNa, setShowShvaNa] = useState(false)
@@ -241,6 +252,10 @@ export default function App() {
       if (aliyot.length > 0) {
         parsed = insertAliyahMarkers(parsed, aliyot)
       }
+      const initialVerseKey = getVerseKeyAtIndex(parsed, 0)
+      setPracticeVerseRange(initialVerseKey
+        ? { start: initialVerseKey, end: initialVerseKey }
+        : null)
       setWords(parsed)
       setBookInfo({ book, chapter, startVerse })
       setCurrentParashaName(parashaName ?? null)
@@ -275,7 +290,11 @@ export default function App() {
             const targetIdx = parsed.findIndex(
               (w) => !w.breakType && w.chapter === urlRoute.chapter && w.verse === urlRoute.verse,
             )
-            if (targetIdx >= 0) setCurrentWordIndex(targetIdx)
+            if (targetIdx >= 0) {
+              const verseKey = getVerseKeyAtIndex(parsed, targetIdx)
+              if (verseKey) setPracticeVerseRange({ start: verseKey, end: verseKey })
+              setCurrentWordIndex(targetIdx)
+            }
           })
         })
         return
@@ -287,7 +306,11 @@ export default function App() {
           const targetIdx = parsed.findIndex(
             (w) => !w.breakType && w.chapter === urlRoute.chapter && w.verse === urlRoute.verse,
           )
-          if (targetIdx >= 0) setCurrentWordIndex(targetIdx)
+          if (targetIdx >= 0) {
+            const verseKey = getVerseKeyAtIndex(parsed, targetIdx)
+            if (verseKey) setPracticeVerseRange({ start: verseKey, end: verseKey })
+            setCurrentWordIndex(targetIdx)
+          }
         })
         return
       }
@@ -297,7 +320,11 @@ export default function App() {
     if (pos) {
       const ref = `${pos.book} ${pos.chapter}:${pos.verse}`
       loadText(ref, pos.book, pos.chapter, pos.verse).then((parsed) => {
-        if (parsed) setCurrentWordIndex(pos.wordIndex)
+        if (parsed) {
+          const verseKey = getVerseKeyAtIndex(parsed, pos.wordIndex)
+          if (verseKey) setPracticeVerseRange({ start: verseKey, end: verseKey })
+          setCurrentWordIndex(pos.wordIndex)
+        }
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -306,6 +333,12 @@ export default function App() {
   const handleWordClick = useCallback((index: number) => {
     setCurrentWordIndex(index)
   }, [setCurrentWordIndex])
+
+  const handleVerseClick = useCallback((verseKey: string) => {
+    setPracticeVerseRange((current) => current
+      ? { ...current, end: verseKey }
+      : { start: verseKey, end: verseKey })
+  }, [])
 
   const handleToggleHighlight = useCallback((wordKey: string) => {
     setHighlightedWords((prev) => {
@@ -349,7 +382,11 @@ export default function App() {
     if (data.position && wordsRef.current.length === 0) {
       const { book, chapter, verse, wordIndex } = data.position
       loadText(`${book} ${chapter}:${verse}`, book, chapter, verse).then((parsed) => {
-        if (parsed) setCurrentWordIndex(wordIndex)
+        if (parsed) {
+          const verseKey = getVerseKeyAtIndex(parsed, wordIndex)
+          if (verseKey) setPracticeVerseRange({ start: verseKey, end: verseKey })
+          setCurrentWordIndex(wordIndex)
+        }
       })
     }
   }, [setSpeed, loadText, setCurrentWordIndex])
@@ -417,7 +454,11 @@ export default function App() {
       if (data.position && wordsRef.current.length === 0) {
         const { book, chapter, verse, wordIndex } = data.position
         loadText(`${book} ${chapter}:${verse}`, book, chapter, verse).then((parsed) => {
-          if (parsed) setCurrentWordIndex(wordIndex)
+          if (parsed) {
+            const verseKey = getVerseKeyAtIndex(parsed, wordIndex)
+            if (verseKey) setPracticeVerseRange({ start: verseKey, end: verseKey })
+            setCurrentWordIndex(wordIndex)
+          }
         })
       }
     })
@@ -537,6 +578,9 @@ export default function App() {
                   bookName={bookInfo.book}
                   highlightedWords={highlightedWords}
                   onToggleHighlight={handleToggleHighlight}
+                  rangeStartVerseKey={practiceVerseRange?.start}
+                  rangeEndVerseKey={practiceVerseRange?.end}
+                  onVerseClick={handleVerseClick}
                   revealAllTaamim={revealAllTaamim}
                   prevNav={hasPrevChapter ? (
                     <button className={styles.chapterNavBtn} onClick={handlePrevChapter}>

@@ -14,6 +14,9 @@ type Props = {
   bookName?: string
   highlightedWords?: Set<string>
   onToggleHighlight?: (wordKey: string) => void
+  rangeStartVerseKey?: string | null
+  rangeEndVerseKey?: string | null
+  onVerseClick?: (verseKey: string) => void
   revealAllTaamim?: boolean
   prevNav?: React.ReactNode
   nextNav?: React.ReactNode
@@ -22,6 +25,13 @@ type Props = {
 type TextCluster = {
   text: string
   letterIndex: number | null
+}
+
+type VerseMetadata = {
+  key: string
+  number: number
+  order: number
+  isStart: boolean
 }
 
 function renderWithShvaNaHighlight(word: Word, displayText: string) {
@@ -72,8 +82,11 @@ function renderWithShvaNaHighlight(word: Word, displayText: string) {
   })
 }
 
-export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize, rashiPractice, showShvaNa, bookName, highlightedWords, onToggleHighlight, revealAllTaamim, prevNav, nextNav }: Props) {
+export default function TextDisplay({ words, currentWordIndex, onWordClick, useRashiFont, fontSize, rashiPractice, showShvaNa, bookName, highlightedWords, onToggleHighlight, rangeStartVerseKey, rangeEndVerseKey, onVerseClick, revealAllTaamim, prevNav, nextNav }: Props) {
   const activeRef = useRef<HTMLSpanElement | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const verseWordRefs = useRef(new Map<string, HTMLSpanElement>())
+  const verseNumberRefs = useRef(new Map<string, HTMLButtonElement>())
 
   // Autoscroll: keep active word visible
   useLayoutEffect(() => {
@@ -94,44 +107,149 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
     return map
   }, [words])
 
+  const verseMetadataMap = useMemo(() => {
+    const map = new Map<number, VerseMetadata>()
+    const orderByKey = new Map<string, number>()
+    const seenKeys = new Set<string>()
+    let nextOrder = 0
+
+    for (const word of words) {
+      if (word.breakType || word.verse === undefined) continue
+      const key = `${word.chapter ?? 0}:${word.verse}`
+      let order = orderByKey.get(key)
+      if (order === undefined) {
+        order = nextOrder++
+        orderByKey.set(key, order)
+      }
+      map.set(word.index, {
+        key,
+        number: word.verse,
+        order,
+        isStart: !seenKeys.has(key),
+      })
+      seenKeys.add(key)
+    }
+
+    return { map, orderByKey }
+  }, [words])
+
+  const rangeStartOrder = rangeStartVerseKey
+    ? verseMetadataMap.orderByKey.get(rangeStartVerseKey)
+    : undefined
+  const rangeEndOrder = rangeEndVerseKey
+    ? verseMetadataMap.orderByKey.get(rangeEndVerseKey)
+    : undefined
+
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const updateVerseNumberPositions = () => {
+      const containerRect = container.getBoundingClientRect()
+      for (const [key, numberElement] of verseNumberRefs.current) {
+        const wordElement = verseWordRefs.current.get(key)
+        if (!wordElement) continue
+        const wordRect = wordElement.getBoundingClientRect()
+        const top = wordRect.top - containerRect.top + container.scrollTop + wordRect.height * 0.18
+        numberElement.style.top = `${top}px`
+      }
+    }
+
+    updateVerseNumberPositions()
+    const observer = new ResizeObserver(updateVerseNumberPositions)
+    observer.observe(container)
+    for (const wordElement of verseWordRefs.current.values()) {
+      observer.observe(wordElement)
+    }
+    window.addEventListener('resize', updateVerseNumberPositions)
+    document.fonts?.ready.then(updateVerseNumberPositions)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateVerseNumberPositions)
+    }
+  }, [words, currentWordIndex, fontSize, useRashiFont, rashiPractice, revealAllTaamim, showShvaNa])
+
   if (words.length === 0) {
     return <div className={styles.empty}>בחר קטע לקריאה</div>
   }
 
   return (
-    <div className={[styles.container, useRashiFont ? styles.rashiFont : ''].filter(Boolean).join(' ')} style={fontSize ? { fontSize } : undefined} dir="rtl">
+    <div
+      ref={containerRef}
+      className={[
+        styles.container,
+        useRashiFont ? styles.rashiFont : '',
+        onVerseClick ? styles.withVerseGutter : '',
+      ].filter(Boolean).join(' ')}
+      style={fontSize ? { fontSize } : undefined}
+      dir="rtl"
+    >
       {prevNav}
       {words.map((word) => {
-        // Render paragraph markers as visual breaks
         if (word.breakType === 'petuchah') {
           return <span key={word.index} className={styles.petuchahBreak} />
         }
         if (word.breakType === 'setumah') {
           return <span key={word.index} className={styles.setumahBreak} />
         }
-        // Render aliyah section markers (שני, שלישי, etc.)
         if (word.breakType === 'aliyah') {
           return <span key={word.index} className={styles.aliyahMarker}>{word.aliyahLabel}</span>
         }
 
         const isActive = word.index === currentWordIndex
         const isPast = word.index < currentWordIndex
-
         const displayText = rashiPractice
           ? (isActive ? word.full : word.plain)
           : (revealAllTaamim || isPast || isActive ? word.full : word.plain)
         const content = showShvaNa && !rashiPractice
           ? renderWithShvaNaHighlight(word, displayText)
           : displayText
-
         const posInVerse = posInVerseMap.get(word.index) ?? 0
         const wordKey = `${bookName ?? ''}|${word.chapter ?? 0}|${word.verse ?? 0}|${posInVerse}`
         const isHighlighted = highlightedWords?.has(wordKey) ?? false
+        const verseMetadata = verseMetadataMap.map.get(word.index)
+        const isVerseInRange =
+          verseMetadata !== undefined &&
+          rangeStartOrder !== undefined &&
+          rangeEndOrder !== undefined &&
+          verseMetadata.order >= rangeStartOrder &&
+          verseMetadata.order <= rangeEndOrder
 
         return (
           <Fragment key={word.index}>
+            {verseMetadata?.isStart && (
+              <button
+                ref={(element) => {
+                  if (element) verseNumberRefs.current.set(verseMetadata.key, element)
+                  else verseNumberRefs.current.delete(verseMetadata.key)
+                }}
+                type="button"
+                className={[
+                  styles.verseNumber,
+                  isVerseInRange ? styles.verseNumberSelected : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                onClick={() => {
+                  if (rangeStartOrder !== undefined && verseMetadata.order >= rangeStartOrder) {
+                    onVerseClick?.(verseMetadata.key)
+                  }
+                }}
+                aria-label={`פסוק ${verseMetadata.number}`}
+                aria-pressed={isVerseInRange}
+              >
+                <span className={styles.verseNumberLabel}>{verseMetadata.number}</span>
+              </button>
+            )}
             <span
-              ref={isActive ? activeRef : null}
+              ref={(element) => {
+                if (isActive) activeRef.current = element
+                if (verseMetadata?.isStart) {
+                  if (element) verseWordRefs.current.set(verseMetadata.key, element)
+                  else verseWordRefs.current.delete(verseMetadata.key)
+                }
+              }}
               className={[
                 styles.word,
                 isActive ? styles.active : '',

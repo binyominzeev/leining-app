@@ -15,6 +15,7 @@
 }
 
 .container {
+  position: relative;
   direction: rtl;
   line-height: 2.2;
   font-size: 2.4rem;
@@ -24,6 +25,10 @@
   overflow-y: auto;
   color: var(--text-display);
   word-spacing: 0.3em;
+}
+
+.withVerseGutter {
+  padding-right: calc(16px + 2.2rem);
 }
 
 .rashiFont {
@@ -40,6 +45,44 @@
   border-radius: 3px;
   transition: background 0.15s;
   display: inline;
+}
+
+.verseNumber {
+  position: absolute;
+  right: 16px;
+  width: 2.2rem;
+  appearance: none;
+  border: 0;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  color: var(--text-accent);
+  opacity: 0.42;
+  font: 400 0.34em/1 sans-serif;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+
+.verseNumberLabel {
+  border-radius: 3px;
+  padding: 0 0.2em;
+}
+
+.verseNumber:hover,
+.verseNumber:focus-visible {
+  opacity: 0.85;
+}
+
+.verseNumberSelected {
+  opacity: 0.9;
+}
+
+.verseNumberSelected .verseNumberLabel {
+  background: var(--word-active-bg);
+  color: var(--text-gold);
 }
 
 .word:hover {
@@ -110,5 +153,14 @@
     line-height: 2.2;
     padding: 10px 12px;
     word-spacing: 0.2em;
+  }
+
+  .withVerseGutter {
+    padding-right: calc(12px + 1.8rem);
+  }
+
+  .verseNumber {
+    right: 12px;
+    width: 1.8rem;
   }
 }
