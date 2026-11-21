@@ -32,6 +32,30 @@
   background: var(--word-hover);
 }
 
+.preview {
+  position: relative;
+}
+
+.full {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  line-height: normal;
+  white-space: nowrap;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .word:hover .plain {
+    visibility: hidden;
+  }
+
+  .word:hover .full {
+    visibility: visible;
+  }
+}
+
 .active {
   color: var(--text-gold);
   background: var(--word-active-bg);
