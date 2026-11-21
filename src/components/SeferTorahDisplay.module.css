@@ -50,6 +50,22 @@
   pointer-events: none;
 }
 
+.wordTooltip {
+  position: fixed;
+  z-index: 300;
+  visibility: hidden;
+  max-width: calc(100vw - 16px);
+  padding: 4px 10px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #fff;
+  color: #111;
+  font-family: 'Taamey Frank CLM', serif;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .word:hover .plain {
     visibility: hidden;

@@ -1,5 +1,6 @@
-import { Fragment, useLayoutEffect, useMemo, useRef } from 'react'
+import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import type { Word } from '../types'
 import { getWordKeys } from '../utils/wordKeys'
 import styles from './SeferTorahDisplay.module.css'
@@ -19,6 +20,8 @@ type Props = {
 
 export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick, bookName, highlightedWords, onToggleHighlight, revealAllTaamim, hideMarks, markDelay, fontScale }: Props) {
   const activeRef = useRef<HTMLSpanElement | null>(null)
+  const tooltipRef = useRef<HTMLDivElement | null>(null)
+  const [hoveredWord, setHoveredWord] = useState<{ element: HTMLSpanElement; text: string } | null>(null)
   const wordKeys = useMemo(() => getWordKeys(words, bookName), [words, bookName])
   const wordOrder = useMemo(() => {
     const order = new Map<number, number>()
@@ -32,6 +35,37 @@ export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick
   useLayoutEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
   }, [currentWordIndex])
+  useLayoutEffect(() => {
+    if (!hoveredWord || !tooltipRef.current) return
+    const tooltip = tooltipRef.current
+    const updatePosition = () => {
+      const { element } = hoveredWord
+      if (!element.isConnected || !element.matches(':hover')) {
+        setHoveredWord(null)
+        return
+      }
+      tooltip.style.fontSize = `${parseFloat(getComputedStyle(element).fontSize) * 1.5}px`
+      const wordRect = element.getBoundingClientRect()
+      const tooltipRect = tooltip.getBoundingClientRect()
+      const margin = 8
+      const left = Math.max(margin, Math.min(
+        wordRect.left + wordRect.width / 2 - tooltipRect.width / 2,
+        document.documentElement.clientWidth - tooltipRect.width - margin,
+      ))
+      const above = wordRect.top - tooltipRect.height - margin
+      const top = above >= margin ? above : wordRect.bottom + margin
+      tooltip.style.left = `${left}px`
+      tooltip.style.top = `${Math.max(margin, Math.min(top, document.documentElement.clientHeight - tooltipRect.height - margin))}px`
+      tooltip.style.visibility = 'visible'
+    }
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [hoveredWord, fontScale, words, currentWordIndex, hideMarks, markDelay, revealAllTaamim])
   const fontStyle: CSSProperties & { '--sefer-font-scale': number } = { '--sefer-font-scale': fontScale / 100 }
 
   if (words.length === 0) {
@@ -70,6 +104,12 @@ export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick
               <span
                 ref={isActive ? activeRef : undefined}
                 className={[styles.word, isActive ? styles.active : '', isPast ? styles.past : '', highlightedWords.has(wordKey) ? styles.highlighted : ''].filter(Boolean).join(' ')}
+                onMouseEnter={(event) => {
+                  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+                    setHoveredWord({ element: event.currentTarget, text: word.full })
+                  }
+                }}
+                onMouseLeave={() => setHoveredWord(null)}
                 onClick={() => onWordClick(word.index)}
                 onContextMenu={(event) => { event.preventDefault(); onToggleHighlight(wordKey) }}
                 role="button"
@@ -92,6 +132,12 @@ export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick
           )
         })}
       </div>
+      {hoveredWord && createPortal(
+        <div ref={tooltipRef} className={styles.wordTooltip} dir="rtl" aria-hidden="true">
+          {hoveredWord.text}
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }
