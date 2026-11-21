@@ -287,7 +287,7 @@ server {
     }
 
     # Proxy API requests to the Node.js backend
-    location /api/ {
+    location ^~ /api/ {
         proxy_pass         http://127.0.0.1:3001;
         proxy_http_version 1.1;
         proxy_set_header   Host              $host;
@@ -338,6 +338,54 @@ pm2 restart leining-api
 ```
 
 Nginx serves the new `dist/` files immediately — no restart required for frontend-only changes.
+
+### API returns the frontend HTML
+
+If `https://lein.myshiurim.com/api/auth/config` returns the HTML page instead of
+JSON, the request is reaching the SPA fallback rather than the API. `npm run
+deploy` uploads **only** the built frontend to `/var/www/leining-app/`; it does
+not install, configure or start the backend, or configure Nginx. The frontend
+and backend must both be deployed.
+
+On the server, keep the existing frontend `root` and TLS configuration. Install
+the repository's `server/` directory separately, configure its `.env` as above
+with `OIDC_REDIRECT_URI=https://lein.myshiurim.com/` and
+`CORS_ORIGIN=https://lein.myshiurim.com`, and start it with PM2. The static
+deployment directory itself does not contain the backend.
+
+Add this location **inside the active HTTPS `server` block** for
+`lein.myshiurim.com`, alongside the existing SPA `location /`:
+
+```nginx
+location ^~ /api/ {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+Keep `proxy_pass` without a trailing slash so the backend receives the `/api/`
+prefix. Adjust the port if `PORT` differs. Validate the existing Nginx
+configuration with `sudo nginx -t`, then reload it with
+`sudo systemctl reload nginx`.
+
+Verify the backend on the server first, then the HTTPS proxy:
+
+```bash
+curl -i http://127.0.0.1:3001/api/health
+curl -i https://lein.myshiurim.com/api/health
+curl -i https://lein.myshiurim.com/api/auth/config
+```
+
+The health endpoints should return JSON `{"ok":true}`. The config endpoint
+should return JSON containing the public `issuer` and `clientId`; a JSON 503
+means the Pocket ID server configuration is incomplete. A 502 indicates that
+Nginx cannot reach the backend; inspect `pm2 status` and `pm2 logs leining-api`.
+If HTML is still returned, check the active HTTPS virtual host and its location
+rules with `sudo nginx -T`.
 
 ### Backup the database
 

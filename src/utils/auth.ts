@@ -49,6 +49,19 @@ function redirectUri(): string {
   return `${window.location.origin}/`
 }
 
+async function readJson<T>(response: Response): Promise<T> {
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!/^application\/(?:[\w.+-]+\+)?json(?:\s*;|$)/i.test(contentType)) {
+    throw new Error(`Expected JSON from ${response.url}, received ${contentType || 'no content type'}. Check the API reverse proxy.`)
+  }
+  try {
+    return await response.json() as T
+  } catch (error) {
+    if (error instanceof SyntaxError) throw new Error(`Invalid JSON from ${response.url}`)
+    throw error
+  }
+}
+
 async function tokenRequest(path: string, params: URLSearchParams): Promise<Tokens> {
   const response = await fetch(`${API_BASE}/auth/${path}`, {
     method: 'POST',
@@ -56,7 +69,7 @@ async function tokenRequest(path: string, params: URLSearchParams): Promise<Toke
     body: params,
   })
   if (!response.ok) throw new HttpError(`Authentication failed (${response.status})`, response.status)
-  const tokens = await response.json() as Tokens
+  const tokens = await readJson<Tokens>(response)
   if (!tokens.access_token || !claims(tokens.access_token).sub) throw new Error('Invalid access token')
   return tokens
 }
@@ -101,10 +114,10 @@ export function getUserName(): string {
 export async function login(): Promise<void> {
   const response = await fetch(`${API_BASE}/auth/config`)
   if (!response.ok) throw new Error(`Authentication configuration failed (${response.status})`)
-  const config = await response.json() as { issuer: string; clientId: string }
+  const config = await readJson<{ issuer: string; clientId: string }>(response)
   const discovery = await fetch(`${config.issuer}/.well-known/openid-configuration`)
   if (!discovery.ok) throw new Error('OIDC discovery failed')
-  const metadata = await discovery.json() as { authorization_endpoint: string }
+  const metadata = await readJson<{ authorization_endpoint: string }>(discovery)
   const verifier = randomString()
   const state = randomString()
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)))
@@ -238,13 +251,13 @@ export function saveUserData(user: string, data: Pending): void {
 export async function loadUserData(user: string): Promise<UserData> {
   await flushUserData(user)
   const response = await api('/user/data')
-  return response.json() as Promise<UserData>
+  return readJson<UserData>(response)
 }
 
 export async function importUserData(user: string, data: Pending): Promise<UserData> {
   await flushUserData(user)
   const response = await api('/user/import', { method: 'POST', body: JSON.stringify(data) })
-  return response.json() as Promise<UserData>
+  return readJson<UserData>(response)
 }
 
 document.addEventListener('visibilitychange', () => {
