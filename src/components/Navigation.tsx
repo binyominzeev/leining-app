@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { TANACH_BOOKS, STATIC_PARASHOT, fetchParashot, type Parasha } from '../utils/sefaria'
 import styles from './Navigation.module.css'
+import { MAX_SCROLL_FONT_SCALE, MIN_SCROLL_FONT_SCALE, SCROLL_FONT_SCALE_STEP } from '../config/scrollConfig'
 
 const TORAH_BOOKS = ['Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy'] as const
 
@@ -23,6 +24,8 @@ type Props = {
   currentVerse?: number
   parashaLoaded?: boolean
   seferTorahMode?: boolean
+  scrollFontScale: number
+  onScrollFontScaleChange: (value: number) => void
   onSeferTorahModeToggle?: () => void
   hideScrollMarks: boolean
   onHideScrollMarksChange: (value: boolean) => void
@@ -50,7 +53,7 @@ function sefariaUrl(book: string, chapter: number, verse: number): string {
   return `https://www.sefaria.org/${bookSlug}.${chapter}.${verse}`
 }
 
-export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange, currentBook, currentChapter, currentVerse, parashaLoaded, seferTorahMode, onSeferTorahModeToggle, hideScrollMarks, onHideScrollMarksChange, delayedScrollMarks, onDelayedScrollMarksChange, scrollMarkDelay, onScrollMarkDelayChange, revealAllTaamim, onRevealAllTaamimToggle, showShvaNa, onShowShvaNaChange, showTaamVideo, onShowTaamVideoChange }: Props) {
+export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange, currentBook, currentChapter, currentVerse, parashaLoaded, seferTorahMode, scrollFontScale, onScrollFontScaleChange, onSeferTorahModeToggle, hideScrollMarks, onHideScrollMarksChange, delayedScrollMarks, onDelayedScrollMarksChange, scrollMarkDelay, onScrollMarkDelayChange, revealAllTaamim, onRevealAllTaamimToggle, showShvaNa, onShowShvaNaChange, showTaamVideo, onShowTaamVideoChange }: Props) {
   const [mode, setMode] = useState<Mode>('manual')
   const [book, setBook] = useState('Genesis')
   const [chapter, setChapter] = useState(1)
@@ -264,6 +267,12 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
 
       {seferTorahMode && (
         <>
+          <div className={styles.scrollFontSize} role="group" aria-label="גודל כתב ספר תורה">
+            <span>גודל כתב:</span>
+            <button type="button" className={styles.seferTorahBtn} aria-label="הקטן כתב" disabled={scrollFontScale <= MIN_SCROLL_FONT_SCALE} onClick={() => onScrollFontScaleChange(Math.max(MIN_SCROLL_FONT_SCALE, scrollFontScale - SCROLL_FONT_SCALE_STEP))}>−</button>
+            <span dir="ltr">{scrollFontScale}%</span>
+            <button type="button" className={styles.seferTorahBtn} aria-label="הגדל כתב" disabled={scrollFontScale >= MAX_SCROLL_FONT_SCALE} onClick={() => onScrollFontScaleChange(Math.min(MAX_SCROLL_FONT_SCALE, scrollFontScale + SCROLL_FONT_SCALE_STEP))}>+</button>
+          </div>
           <label className={styles.rashiCheckbox}>
             <input type="checkbox" checked={hideScrollMarks} onChange={(e) => onHideScrollMarksChange(e.target.checked)} />
             הסתר ניקוד וטעמים

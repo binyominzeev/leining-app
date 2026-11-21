@@ -7,19 +7,20 @@
 }
 
 .columnsContent {
+  /* One column wide: further columns overflow naturally in the RTL scroller. */
+  --column-width: 280px;
   direction: rtl;
   height: 100%;
-  column-width: 280px;
+  width: calc(var(--column-width) + 32px);
+  column-width: var(--column-width);
   column-fill: auto;
   column-gap: 2rem;
   padding: 12px 16px;
-  font-size: 1.05rem;
+  font-size: calc(1.05rem * var(--sefer-font-scale));
   line-height: 1.9;
   font-family: 'Taamey Frank CLM', serif;
   color: var(--text-display);
   word-spacing: 0.15em;
-  /* min-width prevents shrinking below available space when content is short */
-  min-width: 100%;
 }
 
 .word {
@@ -111,8 +112,9 @@
 /* Mobile: narrower columns so more fit on small screens */
 @media (max-width: 640px) {
   .columnsContent {
-    column-width: 200px;
-    font-size: 0.9rem;
+    --column-width: 200px;
+    width: calc(var(--column-width) + 24px);
+    font-size: calc(0.9rem * var(--sefer-font-scale));
     padding: 10px 12px;
   }
 }

@@ -1,4 +1,5 @@
 import type { ReadingPosition } from '../types'
+import { validScrollFontScale } from '../config/scrollConfig'
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api'
 const ACCESS_KEY = 'leining_oidc_access'
@@ -13,6 +14,7 @@ export type UserData = {
   highlights: string[]
   wpm: number
   position: ReadingPosition | null
+  scrollFontScale: number
 }
 
 type Tokens = { access_token: string; refresh_token?: string; id_token?: string }
@@ -251,7 +253,11 @@ export function saveUserData(user: string, data: Pending): void {
 export async function loadUserData(user: string): Promise<UserData> {
   await flushUserData(user)
   const response = await api('/user/data')
-  return readJson<UserData>(response)
+  const data = await readJson<UserData>(response)
+  if (!validScrollFontScale(data.scrollFontScale)) {
+    throw new Error('Invalid scroll font size from server; update the API backend')
+  }
+  return data
 }
 
 document.addEventListener('visibilitychange', () => {

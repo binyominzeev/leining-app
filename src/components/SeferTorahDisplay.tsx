@@ -1,4 +1,5 @@
 import { Fragment, useLayoutEffect, useMemo, useRef } from 'react'
+import type { CSSProperties } from 'react'
 import type { Word } from '../types'
 import { getWordKeys } from '../utils/wordKeys'
 import styles from './SeferTorahDisplay.module.css'
@@ -13,13 +14,10 @@ type Props = {
   revealAllTaamim: boolean
   hideMarks: boolean
   markDelay: number | null
+  fontScale: number
 }
 
-const COLUMN_WIDTH_PX = 280
-const COLUMN_GAP_PX = 32
-const APPROX_WORDS_PER_COLUMN = 65
-
-export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick, bookName, highlightedWords, onToggleHighlight, revealAllTaamim, hideMarks, markDelay }: Props) {
+export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick, bookName, highlightedWords, onToggleHighlight, revealAllTaamim, hideMarks, markDelay, fontScale }: Props) {
   const activeRef = useRef<HTMLSpanElement | null>(null)
   const wordKeys = useMemo(() => getWordKeys(words, bookName), [words, bookName])
   const wordOrder = useMemo(() => {
@@ -34,19 +32,7 @@ export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick
   useLayoutEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
   }, [currentWordIndex])
-  // Estimate container width based on word/break count so CSS columns have room to expand
-  const containerWidth = useMemo(() => {
-    let realWordCount = 0
-    let petuchahCount = 0
-    for (const w of words) {
-      if (!w.breakType) realWordCount++
-      else if (w.breakType === 'petuchah') petuchahCount++
-    }
-    // Each petuchah break consumes roughly a full line of space
-    const estimated = realWordCount + petuchahCount * 8
-    const numColumns = Math.max(3, Math.ceil(estimated / APPROX_WORDS_PER_COLUMN))
-    return numColumns * (COLUMN_WIDTH_PX + COLUMN_GAP_PX)
-  }, [words])
+  const fontStyle: CSSProperties & { '--sefer-font-scale': number } = { '--sefer-font-scale': fontScale / 100 }
 
   if (words.length === 0) {
     return <div className={styles.empty}>בחר קטע לקריאה</div>
@@ -56,7 +42,7 @@ export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick
     <div className={styles.scrollWrapper}>
       <div
         className={styles.columnsContent}
-        style={{ width: `${containerWidth}px` }}
+        style={fontStyle}
       >
         {words.map((word) => {
           if (word.breakType === 'petuchah') {

@@ -16,6 +16,7 @@ import { buildVideoTimeline } from './utils/taamSequences'
 import styles from './App.module.css'
 import sefariaLogo from './assets/powered-by-sefaria.svg'
 import { KEYBOARD_SEEK_WORDS, wpmToMs, msToWpm } from './config/playbackConfig'
+import { DEFAULT_SCROLL_FONT_SCALE, validScrollFontScale } from './config/scrollConfig'
 
 const THEME_STORAGE_KEY = 'leining-theme'
 const TAAM_VIDEO_STORAGE_KEY = 'leining-taam-video'
@@ -23,6 +24,7 @@ const SEFER_TORAH_STORAGE_KEY = 'leining-sefer-torah-mode'
 const HIDE_SCROLL_MARKS_KEY = 'leining-hide-scroll-marks'
 const DELAYED_SCROLL_MARKS_KEY = 'leining-delayed-scroll-marks'
 const SCROLL_MARK_DELAY_KEY = 'leining-scroll-mark-delay'
+const SCROLL_FONT_SCALE_KEY = 'leining-scroll-font-scale'
 
 function getVerseKeyAtIndex(words: Word[], index: number): string | null {
   const target =
@@ -54,6 +56,10 @@ export default function App() {
   const [hideScrollMarks, setHideScrollMarks] = useState(() => localStorage.getItem(HIDE_SCROLL_MARKS_KEY) === '1')
   const [delayedScrollMarks, setDelayedScrollMarks] = useState(() => localStorage.getItem(DELAYED_SCROLL_MARKS_KEY) === '1')
   const [scrollMarkDelay, setScrollMarkDelay] = useState(() => localStorage.getItem(SCROLL_MARK_DELAY_KEY) ?? '10')
+  const [scrollFontScale, setScrollFontScale] = useState(() => {
+    const saved = Number(localStorage.getItem(SCROLL_FONT_SCALE_KEY))
+    return validScrollFontScale(saved) ? saved : DEFAULT_SCROLL_FONT_SCALE
+  })
   const parsedScrollMarkDelay = Number(scrollMarkDelay)
   const validScrollMarkDelay = scrollMarkDelay.trim() !== '' && Number.isSafeInteger(parsedScrollMarkDelay) && parsedScrollMarkDelay >= 1
   const [showShvaNa, setShowShvaNa] = useState(false)
@@ -300,6 +306,7 @@ export default function App() {
       setHighlightedWords(new Set(data.highlights))
       setSpeed(wpmToMs(data.wpm))
       setInitialPosition(data.position)
+      setScrollFontScale(data.scrollFontScale)
       setProfileReady(true)
       setAuthReady(true)
     }).catch((err: unknown) => {
@@ -411,6 +418,12 @@ export default function App() {
     if (currentUser && profileReady) saveUserData(currentUser, { wpm })
     else if (!currentUser) saveSpeed(wpm)
   }, [setSpeed, currentUser, profileReady])
+
+  const handleScrollFontScaleChange = useCallback((scale: number) => {
+    setScrollFontScale(scale)
+    if (currentUser && profileReady) saveUserData(currentUser, { scrollFontScale: scale })
+    else if (!currentUser) localStorage.setItem(SCROLL_FONT_SCALE_KEY, String(scale))
+  }, [currentUser, profileReady])
 
   const handleLogout = useCallback(() => {
     logoutUser()
@@ -527,6 +540,8 @@ export default function App() {
         currentVerse={currentWord?.verse}
         parashaLoaded={!!currentParashaName && words.length > 0}
         seferTorahMode={isSeferTorahMode}
+        scrollFontScale={scrollFontScale}
+        onScrollFontScaleChange={handleScrollFontScaleChange}
         onSeferTorahModeToggle={() => {
           const next = !preferSeferTorahMode
           setPreferSeferTorahMode(next)
@@ -571,6 +586,7 @@ export default function App() {
                 revealAllTaamim={revealAllTaamim}
                 hideMarks={hideScrollMarks}
                 markDelay={delayedScrollMarks && validScrollMarkDelay ? parsedScrollMarkDelay : null}
+                fontScale={scrollFontScale}
               />
             ) : isRashiMode ? (
               <TextDisplay

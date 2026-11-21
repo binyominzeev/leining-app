@@ -28,8 +28,16 @@ db.exec(`
     wpm INTEGER NOT NULL DEFAULT 75,
     highlights TEXT NOT NULL DEFAULT '[]',
     position TEXT DEFAULT NULL,
+    scroll_font_scale INTEGER NOT NULL DEFAULT 100,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `)
+
+db.transaction(() => {
+  const columns = db.pragma('table_info(oidc_user_data)')
+  if (!columns.some((column) => column.name === 'scroll_font_scale')) {
+    db.exec('ALTER TABLE oidc_user_data ADD COLUMN scroll_font_scale INTEGER NOT NULL DEFAULT 100')
+  }
+}).immediate()
 
 module.exports = db

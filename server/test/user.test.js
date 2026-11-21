@@ -29,6 +29,16 @@ test('Pocket ID tokens isolate profiles and local import merges without losing h
   await new Promise((resolve) => issuerServer.listen(0, '127.0.0.1', resolve))
   const issuer = `http://127.0.0.1:${issuerServer.address().port}`
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'leining-test-'))
+  const Database = require('better-sqlite3')
+  const legacyDb = new Database(path.join(directory, 'leining.db'))
+  legacyDb.exec(`CREATE TABLE oidc_user_data (
+    subject TEXT PRIMARY KEY, wpm INTEGER NOT NULL DEFAULT 75,
+    highlights TEXT NOT NULL DEFAULT '[]', position TEXT DEFAULT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`)
+  legacyDb.prepare('INSERT INTO oidc_user_data (subject, wpm, highlights) VALUES (?, ?, ?)')
+    .run('alice', 90, JSON.stringify(['legacy']))
+  legacyDb.close()
   process.env.DATA_DIR = directory
   process.env.OIDC_ISSUER = issuer
   process.env.OIDC_AUDIENCE = 'leining-test'
@@ -87,14 +97,24 @@ test('Pocket ID tokens isolate profiles and local import merges without losing h
 
   assert.equal((await request(await token('alice', 'wrong'))).status, 401)
   assert.equal((await request('invalid')).status, 401)
-  assert.deepEqual((await request(alice)).data, { highlights: [], wpm: 75, position: null })
+  assert.deepEqual((await request(alice)).data, { highlights: ['legacy'], wpm: 90, position: null, scrollFontScale: 100 })
   await request(alice, 'PUT', '/data', { highlights: ['old', 'shared'] })
   await request(alice, 'PUT', '/data', { wpm: 120 })
+  assert.equal((await request(alice, 'PUT', '/data', { scrollFontScale: 140 })).status, 200)
   const position = { book: 'Genesis', chapter: 1, verse: 1, wordIndex: 2, ref: 'Genesis 1' }
   assert.deepEqual((await request(alice, 'POST', '/import', { highlights: ['shared', 'local'], position })).data,
-    { highlights: ['old', 'shared', 'local'], wpm: 120, position })
-  assert.deepEqual((await request(bob)).data, { highlights: [], wpm: 75, position: null })
+    { highlights: ['old', 'shared', 'local'], wpm: 120, position, scrollFontScale: 140 })
+  assert.deepEqual((await request(bob)).data, { highlights: [], wpm: 75, position: null, scrollFontScale: 100 })
+  await request(bob, 'PUT', '/data', { scrollFontScale: 80 })
+  assert.equal((await request(bob)).data.scrollFontScale, 80)
+  for (const invalid of [49, 201, 100.5, '100', null]) {
+    assert.equal((await request(bob, 'PUT', '/data', { scrollFontScale: invalid })).status, 400)
+  }
   assert.equal((await request(bob, 'PUT', '/data', { highlights: [42] })).status, 400)
   assert.equal((await request(bob, 'PUT', '/data', { position: { book: 'Genesis' } })).status, 400)
-  assert.deepEqual((await request(alice)).data.highlights, ['old', 'shared', 'local'])
+  assert.deepEqual((await request(alice)).data, { highlights: ['old', 'shared', 'local'], wpm: 120, position, scrollFontScale: 140 })
+  delete require.cache[require.resolve('../db')]
+  const reopened = require('../db')
+  assert.equal(reopened.prepare('SELECT scroll_font_scale FROM oidc_user_data WHERE subject = ?').get('alice').scroll_font_scale, 140)
+  reopened.close()
 })

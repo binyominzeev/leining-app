@@ -10,7 +10,7 @@ A web app for practising Torah reading (leining) with cantillation marks (ta'ami
   - *Manual* — choose any book, chapter, and verse range from the full Tanach
   - *Parasha* — load the current week's Torah portion directly from the Sefaria calendar
 - **Progress persistence** — your last reading position is saved so you can pick up where you left off
-- **Pocket ID accounts** — sync highlights, speed, and reading position across devices
+- **Pocket ID accounts** — sync highlights, speed, reading position, and scroll font size across devices
 - **Right-to-left Hebrew UI** with Frank Ruhl Libre typeface
 - **Sefer Torah mode** — column view with playback, word highlighting, hand-sign videos, and aliyah markers
 
@@ -172,8 +172,8 @@ src/
 2. **Load** — press the *טען* button to fetch the Hebrew text from Sefaria.
 3. **Read** — click the play button (▶) to advance through the words automatically, or click any word to jump to it.
 4. **Adjust speed** — use the speed slider in the controls bar to set a comfortable pace.
-5. **Account** — click *כניסה עם Pocket ID* and sign in. Highlights, speed and
-   reading position are saved per Pocket ID subject. Failed writes are kept
+5. **Account** — click *כניסה עם Pocket ID* and sign in. Highlights, speed,
+   reading position, and scroll font size are saved per Pocket ID subject. Failed writes are kept
    locally and retried on reload or when the tab becomes visible.
 6. **Sefer Torah practice** — in the column view, select *הסתר ניקוד וטעמים*
    to hide all vowel and cantillation marks while the active word is highlighted.
@@ -182,7 +182,9 @@ src/
    not count as words. Hover over any word to temporarily reveal its marks.
    The setting does not affect the normal reading view. The selected view is
    remembered in this browser, along with these checkboxes and the delay;
-   book/chapter readings still use the normal view.
+   book/chapter readings still use the normal view. Use the −/+ buttons to
+   adjust the scroll font size; it is saved to your account when signed in,
+   or in this browser when anonymous.
 
 Access and refresh tokens are stored in browser localStorage, as in the
 Pocket ID setup guide. A script injection could read them; use HTTPS and protect
@@ -338,6 +340,10 @@ pm2 restart leining-api
 ```
 
 Nginx serves the new `dist/` files immediately — no restart required for frontend-only changes.
+For account-backed scroll font size, deploy the updated backend and restart it
+before deploying the frontend. On startup the backend automatically adds the
+new SQLite column without removing existing user data. Back up the database
+before updating. `npm run deploy` uploads only the frontend, not the backend.
 
 ### API returns the frontend HTML
 
