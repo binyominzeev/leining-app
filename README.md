@@ -180,7 +180,8 @@ src/
    Optionally select *הצג באיחור* and set a distance in words: at word 30, a
    distance of 10 shows marks through word 20. Paragraph and aliyah markers do
    not count as words. Hover over any word to temporarily reveal its marks.
-   The setting does not affect the normal reading view.
+   The setting does not affect the normal reading view. The selected view is
+   remembered in this browser; book/chapter readings still use the normal view.
 
 Access and refresh tokens are stored in browser localStorage, as in the
 Pocket ID setup guide. A script injection could read them; use HTTPS and protect

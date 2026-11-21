@@ -19,6 +19,7 @@ import { KEYBOARD_SEEK_WORDS, wpmToMs, msToWpm } from './config/playbackConfig'
 
 const THEME_STORAGE_KEY = 'leining-theme'
 const TAAM_VIDEO_STORAGE_KEY = 'leining-taam-video'
+const SEFER_TORAH_STORAGE_KEY = 'leining-sefer-torah-mode'
 
 function getVerseKeyAtIndex(words: Word[], index: number): string | null {
   const target =
@@ -44,7 +45,8 @@ export default function App() {
   })
   const [highlightedWords, setHighlightedWords] = useState<Set<string>>(() => loadHighlights())
   const [practiceVerseRange, setPracticeVerseRange] = useState<{ start: string; end: string } | null>(null)
-  const [isSeferTorahMode, setIsSeferTorahMode] = useState(false)
+  const [preferSeferTorahMode, setPreferSeferTorahMode] = useState(() => localStorage.getItem(SEFER_TORAH_STORAGE_KEY) === '1')
+  const isSeferTorahMode = preferSeferTorahMode && !!currentParashaName
   const [revealAllTaamim, setRevealAllTaamim] = useState(false)
   const [hideScrollMarks, setHideScrollMarks] = useState(false)
   const [delayedScrollMarks, setDelayedScrollMarks] = useState(false)
@@ -261,7 +263,6 @@ export default function App() {
       readingRef.current = { ref, ...(parashaName ? { parashaName } : {}) }
       setCurrentParashaName(parashaName ?? null)
       currentParashaNameRef.current = parashaName ?? null
-      setIsSeferTorahMode(false)
       lastUrlVerseRef.current = null
       setCurrentWordIndex(0)
       return parsed
@@ -523,7 +524,11 @@ export default function App() {
         currentVerse={currentWord?.verse}
         parashaLoaded={!!currentParashaName && words.length > 0}
         seferTorahMode={isSeferTorahMode}
-        onSeferTorahModeToggle={() => setIsSeferTorahMode((prev) => !prev)}
+        onSeferTorahModeToggle={() => {
+          const next = !preferSeferTorahMode
+          setPreferSeferTorahMode(next)
+          localStorage.setItem(SEFER_TORAH_STORAGE_KEY, next ? '1' : '0')
+        }}
         hideScrollMarks={hideScrollMarks}
         onHideScrollMarksChange={setHideScrollMarks}
         delayedScrollMarks={delayedScrollMarks}
