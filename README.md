@@ -91,6 +91,18 @@ registered Pocket ID URI and the frontend origin followed by `/` (for example
 audience to enforce. The client secret stays on the backend; the frontend gets
 the public issuer and client ID from `/api/auth/config`.
 
+### Pocket ID Callback URL
+
+In the Pocket ID client settings, set the **Callback URL / Redirect URI** to
+the frontend's origin followed by `/`:
+
+- Local development: `http://localhost:5173/`
+- Production: `https://yourdomain.com/` (replace with your frontend domain)
+
+Set `OIDC_REDIRECT_URI` in `server/.env` to exactly the same URL, including
+the trailing slash. The protocol, hostname and port must also match the URL
+used to open the frontend.
+
 ### Start the backend
 
 ```bash
