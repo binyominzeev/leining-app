@@ -24,6 +24,12 @@ type Props = {
   parashaLoaded?: boolean
   seferTorahMode?: boolean
   onSeferTorahModeToggle?: () => void
+  hideScrollMarks: boolean
+  onHideScrollMarksChange: (value: boolean) => void
+  delayedScrollMarks: boolean
+  onDelayedScrollMarksChange: (value: boolean) => void
+  scrollMarkDelay: string
+  onScrollMarkDelayChange: (value: string) => void
   revealAllTaamim?: boolean
   onRevealAllTaamimToggle?: () => void
   showShvaNa?: boolean
@@ -44,7 +50,7 @@ function sefariaUrl(book: string, chapter: number, verse: number): string {
   return `https://www.sefaria.org/${bookSlug}.${chapter}.${verse}`
 }
 
-export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange, currentBook, currentChapter, currentVerse, parashaLoaded, seferTorahMode, onSeferTorahModeToggle, revealAllTaamim, onRevealAllTaamimToggle, showShvaNa, onShowShvaNaChange, showTaamVideo, onShowTaamVideoChange }: Props) {
+export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, rashiFontSize, onRashiFontSizeChange, currentBook, currentChapter, currentVerse, parashaLoaded, seferTorahMode, onSeferTorahModeToggle, hideScrollMarks, onHideScrollMarksChange, delayedScrollMarks, onDelayedScrollMarksChange, scrollMarkDelay, onScrollMarkDelayChange, revealAllTaamim, onRevealAllTaamimToggle, showShvaNa, onShowShvaNaChange, showTaamVideo, onShowTaamVideoChange }: Props) {
   const [mode, setMode] = useState<Mode>('manual')
   const [book, setBook] = useState('Genesis')
   const [chapter, setChapter] = useState(1)
@@ -256,11 +262,47 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
         </button>
       )}
 
+      {seferTorahMode && (
+        <>
+          <label className={styles.rashiCheckbox}>
+            <input type="checkbox" checked={hideScrollMarks} onChange={(e) => onHideScrollMarksChange(e.target.checked)} />
+            הסתר ניקוד וטעמים
+          </label>
+          {hideScrollMarks && (
+            <>
+              <label className={styles.rashiCheckbox}>
+                <input type="checkbox" checked={delayedScrollMarks} onChange={(e) => onDelayedScrollMarksChange(e.target.checked)} />
+                הצג באיחור
+              </label>
+              {delayedScrollMarks && (
+                <label className={styles.rashiSizeLabel}>
+                  מרחק במילים:
+                  <input
+                    className={styles.rashiSizeInput}
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={scrollMarkDelay}
+                    required
+                    aria-invalid={scrollMarkDelay.trim() === '' || !Number.isSafeInteger(Number(scrollMarkDelay)) || Number(scrollMarkDelay) < 1}
+                    onChange={(e) => onScrollMarkDelayChange(e.currentTarget.value)}
+                  />
+                  {(scrollMarkDelay.trim() === '' || !Number.isSafeInteger(Number(scrollMarkDelay)) || Number(scrollMarkDelay) < 1) && (
+                    <span role="alert">יש להזין מספר שלם חיובי</span>
+                  )}
+                </label>
+              )}
+            </>
+          )}
+        </>
+      )}
+
       {onRevealAllTaamimToggle && (
         <button
           className={[styles.seferTorahBtn, revealAllTaamim ? styles.seferTorahBtnActive : ''].filter(Boolean).join(' ')}
           onClick={onRevealAllTaamimToggle}
-          title={revealAllTaamim ? 'חזרה למצב רגיל' : 'הצג כל המילים עם טעמים'}
+          disabled={!!seferTorahMode && hideScrollMarks}
+          title={seferTorahMode && hideScrollMarks ? 'בטל הסתרת ניקוד וטעמים כדי להציג הכל' : revealAllTaamim ? 'חזרה למצב רגיל' : 'הצג כל המילים עם טעמים'}
           aria-pressed={revealAllTaamim}
         >
           {revealAllTaamim ? 'הסתר' : 'הצג הכל'}

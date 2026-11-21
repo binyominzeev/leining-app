@@ -42,13 +42,6 @@
   background: var(--bg-secondary);
 }
 
-.syncMessage {
-  direction: rtl;
-  padding: 8px 20px;
-  color: var(--text-accent);
-  background: var(--bg-secondary);
-}
-
 .workspace {
   display: flex;
   flex: 1;

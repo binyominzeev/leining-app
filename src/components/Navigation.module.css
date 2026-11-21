@@ -136,6 +136,11 @@
   border-color: var(--text-accent);
 }
 
+.seferTorahBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .seferTorahBtnActive {
   background: var(--word-active-bg);
   border-color: var(--text-gold);

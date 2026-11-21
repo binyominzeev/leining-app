@@ -3,8 +3,7 @@ import type { ReadingPosition, Word } from './types'
 import { parseVerseText, parseSefariaResponse, insertAliyahMarkers } from './utils/hebrew'
 import { fetchSefariaText, fetchAliyot, parseAliyotRefs, fetchParashot, STATIC_PARASHOT, TANACH_BOOKS } from './utils/sefaria'
 import { savePosition, loadPosition, saveHighlights, loadHighlights, saveSpeed, loadSpeed } from './utils/storage'
-import { getCurrentUser, getUserName, initializeAuth, login, loadUserData, saveUserData, logoutUser, importUserData } from './utils/auth'
-import type { UserData } from './utils/auth'
+import { getCurrentUser, getUserName, initializeAuth, login, loadUserData, saveUserData, logoutUser } from './utils/auth'
 import { updateUrl, parseCurrentUrl } from './utils/url'
 import { usePlayback } from './hooks/usePlayback'
 import Navigation from './components/Navigation'
@@ -47,6 +46,11 @@ export default function App() {
   const [practiceVerseRange, setPracticeVerseRange] = useState<{ start: string; end: string } | null>(null)
   const [isSeferTorahMode, setIsSeferTorahMode] = useState(false)
   const [revealAllTaamim, setRevealAllTaamim] = useState(false)
+  const [hideScrollMarks, setHideScrollMarks] = useState(false)
+  const [delayedScrollMarks, setDelayedScrollMarks] = useState(false)
+  const [scrollMarkDelay, setScrollMarkDelay] = useState('10')
+  const parsedScrollMarkDelay = Number(scrollMarkDelay)
+  const validScrollMarkDelay = scrollMarkDelay.trim() !== '' && Number.isSafeInteger(parsedScrollMarkDelay) && parsedScrollMarkDelay >= 1
   const [showShvaNa, setShowShvaNa] = useState(false)
   const [showTaamVideo, setShowTaamVideo] = useState(() => localStorage.getItem(TAAM_VIDEO_STORAGE_KEY) === '1')
   const [currentUser, setCurrentUser] = useState<string | null>(null)
@@ -56,8 +60,6 @@ export default function App() {
     if (!sessionStorage.getItem('leining_auth_expired')) return null
     return 'ההתחברות פגה. יש להתחבר מחדש.'
   })
-  const [importing, setImporting] = useState(false)
-  const [importMessage, setImportMessage] = useState(false)
   const [initialPosition, setInitialPosition] = useState<ReadingPosition | null>(null)
 
   // Initial playback speed: load from user profile or anonymous localStorage
@@ -444,41 +446,6 @@ export default function App() {
     }
   }, [currentUser, profileReady])
 
-  const handleImport = async () => {
-    if (!currentUser) return
-    setImporting(true)
-    if (positionTimerRef.current) clearTimeout(positionTimerRef.current)
-    positionTimerRef.current = null
-    setImportMessage(false)
-    setSyncError(null)
-    try {
-      const legacy = localStorage.getItem('leining_user_cache')
-      const cached = legacy ? JSON.parse(legacy) as Partial<UserData> : {}
-      const highlights = [...new Set([...loadHighlights(), ...(Array.isArray(cached.highlights) ? cached.highlights : [])])]
-      const wpm = loadSpeed() ?? cached.wpm
-      const position = loadPosition() ?? cached.position
-      const data = await importUserData(currentUser, { highlights, ...(wpm ? { wpm } : {}), ...(position ? { position } : {}) })
-      setHighlightedWords((previous) => new Set([...previous, ...data.highlights]))
-      setSpeed(wpmToMs(data.wpm))
-      if (position) {
-        if (positionTimerRef.current) clearTimeout(positionTimerRef.current)
-        positionTimerRef.current = null
-        latestPositionRef.current = position
-        const refs = position.parashaName
-          ? (await fetchParashot()).find((item) => item.en === position.parashaName)?.aliyotRefs
-          : undefined
-        const parsed = await loadText(position.ref ?? `${position.book} ${position.chapter}:${position.verse}`, position.book, position.chapter, position.verse, position.parashaName, refs)
-        if (parsed) setCurrentWordIndex(Math.min(position.wordIndex, parsed.length - 1))
-      }
-      setImportMessage(true)
-    } catch (err) {
-      console.error('Import failed:', err)
-      setSyncError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setImporting(false)
-    }
-  }
-
   const handleRashiWordClick = useCallback((index: number) => {
     setRashiCurrentWordIndex(index)
   }, [setRashiCurrentWordIndex])
@@ -519,9 +486,6 @@ export default function App() {
           {currentUser ? (
             <div className={styles.userInfo}>
               <span className={styles.userName}>👤 {getUserName()}</span>
-              <button className={styles.authBtn} disabled={!profileReady || importing} onClick={handleImport}>
-                {importing ? '...' : 'ייבוא נתונים מקומיים'}
-              </button>
               <button className={styles.authBtn} onClick={handleLogout}>יציאה</button>
             </div>
           ) : (
@@ -547,13 +511,7 @@ export default function App() {
       </header>
 
       {syncError && <div className={styles.syncError} role="alert">שגיאת התחברות או סנכרון: {syncError} <button onClick={() => window.location.reload()}>נסה שוב</button></div>}
-      {importMessage && <div className={styles.syncMessage} role="status">הנתונים המקומיים יובאו בהצלחה</div>}
-
-      {authReady && (!currentUser || profileReady) && <div
-        className={styles.workspace}
-        aria-busy={importing}
-        ref={(element) => { if (element) element.inert = importing }}
-      >
+      {authReady && (!currentUser || profileReady) && <div className={styles.workspace}>
       <Navigation
         onLoad={loadText}
         useRashiFont={useRashiFont}
@@ -566,6 +524,12 @@ export default function App() {
         parashaLoaded={!!currentParashaName && words.length > 0}
         seferTorahMode={isSeferTorahMode}
         onSeferTorahModeToggle={() => setIsSeferTorahMode((prev) => !prev)}
+        hideScrollMarks={hideScrollMarks}
+        onHideScrollMarksChange={setHideScrollMarks}
+        delayedScrollMarks={delayedScrollMarks}
+        onDelayedScrollMarksChange={setDelayedScrollMarks}
+        scrollMarkDelay={scrollMarkDelay}
+        onScrollMarkDelayChange={setScrollMarkDelay}
         revealAllTaamim={revealAllTaamim}
         onRevealAllTaamimToggle={() => setRevealAllTaamim((prev) => !prev)}
         showShvaNa={showShvaNa}
@@ -588,6 +552,8 @@ export default function App() {
                 highlightedWords={highlightedWords}
                 onToggleHighlight={handleToggleHighlight}
                 revealAllTaamim={revealAllTaamim}
+                hideMarks={hideScrollMarks}
+                markDelay={delayedScrollMarks && validScrollMarkDelay ? parsedScrollMarkDelay : null}
               />
             ) : isRashiMode ? (
               <TextDisplay

@@ -175,14 +175,11 @@ src/
 5. **Account** — click *כניסה עם Pocket ID* and sign in. Highlights, speed and
    reading position are saved per Pocket ID subject. Failed writes are kept
    locally and retried on reload or when the tab becomes visible.
-6. **Import old data** — after signing in, click *ייבוא נתונים מקומיים* on
-   the device containing your old data. Highlights from local storage and the
-   previous account cache are merged with the account's existing highlights;
-   locally saved speed and position replace the account values when present.
-   The local data is not deleted. Import is explicit to avoid mixing data from
-   different people using the same browser. Old server-only username/password
-   accounts are not automatically linked to Pocket ID; import their cached data
-   from the browser where they were used.
+6. **Sefer Torah practice** — in the column view, select *הסתר ניקוד וטעמים*
+   to hide all vowel and cantillation marks while the active word is highlighted.
+   Optionally select *הצג באיחור* and set a distance in words: at word 30, a
+   distance of 10 shows marks through word 20. Paragraph and aliyah markers do
+   not count as words. The setting does not affect the normal reading view.
 
 Access and refresh tokens are stored in browser localStorage, as in the
 Pocket ID setup guide. A script injection could read them; use HTTPS and protect

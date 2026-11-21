@@ -254,12 +254,6 @@ export async function loadUserData(user: string): Promise<UserData> {
   return readJson<UserData>(response)
 }
 
-export async function importUserData(user: string, data: Pending): Promise<UserData> {
-  await flushUserData(user)
-  const response = await api('/user/import', { method: 'POST', body: JSON.stringify(data) })
-  return readJson<UserData>(response)
-}
-
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible' || !accessToken) return
   const exp = claims(accessToken).exp
