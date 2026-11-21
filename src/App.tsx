@@ -20,6 +20,9 @@ import { KEYBOARD_SEEK_WORDS, wpmToMs, msToWpm } from './config/playbackConfig'
 const THEME_STORAGE_KEY = 'leining-theme'
 const TAAM_VIDEO_STORAGE_KEY = 'leining-taam-video'
 const SEFER_TORAH_STORAGE_KEY = 'leining-sefer-torah-mode'
+const HIDE_SCROLL_MARKS_KEY = 'leining-hide-scroll-marks'
+const DELAYED_SCROLL_MARKS_KEY = 'leining-delayed-scroll-marks'
+const SCROLL_MARK_DELAY_KEY = 'leining-scroll-mark-delay'
 
 function getVerseKeyAtIndex(words: Word[], index: number): string | null {
   const target =
@@ -48,9 +51,9 @@ export default function App() {
   const [preferSeferTorahMode, setPreferSeferTorahMode] = useState(() => localStorage.getItem(SEFER_TORAH_STORAGE_KEY) === '1')
   const isSeferTorahMode = preferSeferTorahMode && !!currentParashaName
   const [revealAllTaamim, setRevealAllTaamim] = useState(false)
-  const [hideScrollMarks, setHideScrollMarks] = useState(false)
-  const [delayedScrollMarks, setDelayedScrollMarks] = useState(false)
-  const [scrollMarkDelay, setScrollMarkDelay] = useState('10')
+  const [hideScrollMarks, setHideScrollMarks] = useState(() => localStorage.getItem(HIDE_SCROLL_MARKS_KEY) === '1')
+  const [delayedScrollMarks, setDelayedScrollMarks] = useState(() => localStorage.getItem(DELAYED_SCROLL_MARKS_KEY) === '1')
+  const [scrollMarkDelay, setScrollMarkDelay] = useState(() => localStorage.getItem(SCROLL_MARK_DELAY_KEY) ?? '10')
   const parsedScrollMarkDelay = Number(scrollMarkDelay)
   const validScrollMarkDelay = scrollMarkDelay.trim() !== '' && Number.isSafeInteger(parsedScrollMarkDelay) && parsedScrollMarkDelay >= 1
   const [showShvaNa, setShowShvaNa] = useState(false)
@@ -530,11 +533,20 @@ export default function App() {
           localStorage.setItem(SEFER_TORAH_STORAGE_KEY, next ? '1' : '0')
         }}
         hideScrollMarks={hideScrollMarks}
-        onHideScrollMarksChange={setHideScrollMarks}
+        onHideScrollMarksChange={(value) => {
+          setHideScrollMarks(value)
+          localStorage.setItem(HIDE_SCROLL_MARKS_KEY, value ? '1' : '0')
+        }}
         delayedScrollMarks={delayedScrollMarks}
-        onDelayedScrollMarksChange={setDelayedScrollMarks}
+        onDelayedScrollMarksChange={(value) => {
+          setDelayedScrollMarks(value)
+          localStorage.setItem(DELAYED_SCROLL_MARKS_KEY, value ? '1' : '0')
+        }}
         scrollMarkDelay={scrollMarkDelay}
-        onScrollMarkDelayChange={setScrollMarkDelay}
+        onScrollMarkDelayChange={(value) => {
+          setScrollMarkDelay(value)
+          localStorage.setItem(SCROLL_MARK_DELAY_KEY, value)
+        }}
         revealAllTaamim={revealAllTaamim}
         onRevealAllTaamimToggle={() => setRevealAllTaamim((prev) => !prev)}
         showShvaNa={showShvaNa}
