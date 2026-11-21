@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Word } from '../types'
 import { getWordKeys } from '../utils/wordKeys'
 import styles from './SeferTorahDisplay.module.css'
@@ -21,6 +21,7 @@ const APPROX_WORDS_PER_COLUMN = 65
 
 export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick, bookName, highlightedWords, onToggleHighlight, revealAllTaamim, hideMarks, markDelay }: Props) {
   const activeRef = useRef<HTMLSpanElement | null>(null)
+  const [hoveredWordIndex, setHoveredWordIndex] = useState<number | null>(null)
   const wordKeys = useMemo(() => getWordKeys(words, bookName), [words, bookName])
   const wordOrder = useMemo(() => {
     const order = new Map<number, number>()
@@ -76,9 +77,9 @@ export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick
           const isPast = word.index < currentWordIndex
           const wordKey = wordKeys.get(word.index) ?? ''
           const order = wordOrder.get(word.index) ?? 0
-          const showMarks = hideMarks
+          const showMarks = word.index === hoveredWordIndex || (hideMarks
             ? markDelay !== null && isPast && order <= currentOrder - markDelay
-            : revealAllTaamim || isPast || isActive
+            : revealAllTaamim || isPast || isActive)
           return (
             <span
               key={word.index}
@@ -86,6 +87,12 @@ export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick
               className={[styles.word, isActive ? styles.active : '', isPast ? styles.past : '', highlightedWords.has(wordKey) ? styles.highlighted : ''].filter(Boolean).join(' ')}
               onClick={() => onWordClick(word.index)}
               onContextMenu={(event) => { event.preventDefault(); onToggleHighlight(wordKey) }}
+              onPointerEnter={(event) => {
+                if (event.pointerType === 'mouse') setHoveredWordIndex(word.index)
+              }}
+              onPointerLeave={(event) => {
+                if (event.pointerType === 'mouse') setHoveredWordIndex(null)
+              }}
               role="button"
               tabIndex={0}
               onKeyDown={(event) => {
