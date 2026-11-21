@@ -206,11 +206,10 @@ export function parseSefariaResponse(
 }
 
 /**
- * Strip all niqqud and ta'amim (Unicode range U+0591–U+05C7).
+ * Strip niqqud and ta'amim and replace maqaf with a word space.
  */
 export function stripDiacritics(text: string): string {
-  // Remove Hebrew diacritics (niqqud and taamim), but keep maqaf (\u05BE)
-  return text.replace(/[\u0591-\u05BD\u05BF-\u05C7]/g, '')
+  return text.replace(/[\u0591-\u05BD\u05BF-\u05C7]/g, '').replace(/\u05BE/g, ' ').trim()
 }
 
 /**

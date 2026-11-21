@@ -179,8 +179,9 @@ src/
    to hide all vowel and cantillation marks while the active word is highlighted.
    Optionally select *הצג באיחור* and set a distance in words: at word 30, a
    distance of 10 shows marks through word 20. Paragraph and aliyah markers do
-   not count as words. Hover over any word to temporarily reveal its marks and
-   show an enlarged, fully marked version above or below it.
+   not count as words. In the unmarked text, a maqaf is replaced by a space;
+   it remains visible when the marked text is revealed. Hover over any word to
+   temporarily reveal its marks and show an enlarged version above or below it.
    The setting does not affect the normal reading view. The selected view is
    remembered in this browser, along with these checkboxes and the delay;
    book/chapter readings still use the normal view. Use the −/+ buttons to
