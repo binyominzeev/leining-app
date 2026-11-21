@@ -22,6 +22,14 @@ db.exec(`
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS oidc_user_data (
+    subject TEXT PRIMARY KEY,
+    wpm INTEGER NOT NULL DEFAULT 75,
+    highlights TEXT NOT NULL DEFAULT '[]',
+    position TEXT DEFAULT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `)
 
 module.exports = db

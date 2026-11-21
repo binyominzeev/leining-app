@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
-import type { Word } from './types'
+import type { ReadingPosition, Word } from './types'
 import { parseVerseText, parseSefariaResponse, insertAliyahMarkers } from './utils/hebrew'
 import { fetchSefariaText, fetchAliyot, parseAliyotRefs, fetchParashot, STATIC_PARASHOT, TANACH_BOOKS } from './utils/sefaria'
 import { savePosition, loadPosition, saveHighlights, loadHighlights, saveSpeed, loadSpeed } from './utils/storage'
-import { getCurrentUser, loadUserData, saveUserData, logoutUser, refreshUserData } from './utils/auth'
+import { getCurrentUser, getUserName, initializeAuth, login, loadUserData, saveUserData, logoutUser, importUserData } from './utils/auth'
 import type { UserData } from './utils/auth'
 import { updateUrl, parseCurrentUrl } from './utils/url'
 import { usePlayback } from './hooks/usePlayback'
@@ -12,7 +12,6 @@ import TextDisplay from './components/TextDisplay'
 import SeferTorahDisplay from './components/SeferTorahDisplay'
 import Controls from './components/Controls'
 import RashiTextPanel from './components/RashiTextPanel'
-import AuthModal from './components/AuthModal'
 import TaamVideoPanel from './components/TaamVideoPanel'
 import { buildVideoTimeline } from './utils/taamSequences'
 import styles from './App.module.css'
@@ -50,16 +49,19 @@ export default function App() {
   const [revealAllTaamim, setRevealAllTaamim] = useState(false)
   const [showShvaNa, setShowShvaNa] = useState(false)
   const [showTaamVideo, setShowTaamVideo] = useState(() => localStorage.getItem(TAAM_VIDEO_STORAGE_KEY) === '1')
-  const [currentUser, setCurrentUser] = useState<string | null>(() => getCurrentUser())
-  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [currentUser, setCurrentUser] = useState<string | null>(null)
+  const [authReady, setAuthReady] = useState(false)
+  const [profileReady, setProfileReady] = useState(false)
+  const [syncError, setSyncError] = useState<string | null>(() => {
+    if (!sessionStorage.getItem('leining_auth_expired')) return null
+    return 'ההתחברות פגה. יש להתחבר מחדש.'
+  })
+  const [importing, setImporting] = useState(false)
+  const [importMessage, setImportMessage] = useState(false)
+  const [initialPosition, setInitialPosition] = useState<ReadingPosition | null>(null)
 
   // Initial playback speed: load from user profile or anonymous localStorage
   const [initialSpeed] = useState<number>(() => {
-    const loggedIn = getCurrentUser()
-    if (loggedIn) {
-      const data = loadUserData(loggedIn)
-      if (data) return wpmToMs(data.wpm)
-    }
     const savedWpm = loadSpeed()
     return savedWpm ? wpmToMs(savedWpm) : 800
   })
@@ -102,6 +104,7 @@ export default function App() {
   const wordsRef = useRef<Word[]>([])
   const currentParashaNameRef = useRef<string | null>(null)
   const bookInfoRef = useRef({ book: '', chapter: 1, startVerse: 1 })
+  const readingRef = useRef<{ ref: string; parashaName?: string }>({ ref: '' })
   const lastUrlVerseRef = useRef<{ chapter: number; verse: number } | null>(null)
   const highlightedWordsRef = useRef(highlightedWords)
 
@@ -130,13 +133,6 @@ export default function App() {
         if (urlName) updateUrl(urlName, chapter, verse)
       }
     }
-    // Persist position
-    savePosition({
-      book: bookInfoRef.current.book,
-      chapter: bookInfoRef.current.chapter,
-      verse: bookInfoRef.current.startVerse,
-      wordIndex: index,
-    })
   }, [])
 
   const { currentWordIndex, isPlaying, speed, setCurrentWordIndex, setSpeed, play, pause, toggle } =
@@ -159,7 +155,7 @@ export default function App() {
     setShowTaamVideo(value)
     localStorage.setItem(TAAM_VIDEO_STORAGE_KEY, value ? '1' : '0')
   }, [])
-  const isRashiMode = useRashiFont && rashiWords.length > 0
+  const isRashiMode = !isSeferTorahMode && useRashiFont && rashiWords.length > 0
 
   // Update browser tab title to reflect current position
   useEffect(() => {
@@ -258,7 +254,11 @@ export default function App() {
         : null)
       setWords(parsed)
       setBookInfo({ book, chapter, startVerse })
+      bookInfoRef.current = { book, chapter, startVerse }
+      wordsRef.current = parsed
+      readingRef.current = { ref, ...(parashaName ? { parashaName } : {}) }
       setCurrentParashaName(parashaName ?? null)
+      currentParashaNameRef.current = parashaName ?? null
       setIsSeferTorahMode(false)
       lastUrlVerseRef.current = null
       setCurrentWordIndex(0)
@@ -271,8 +271,51 @@ export default function App() {
     }
   }, [setCurrentWordIndex])
 
-  // On mount: load from URL first, then fall back to saved localStorage position
   useEffect(() => {
+    let active = true
+    sessionStorage.removeItem('leining_auth_expired')
+    const onSyncError = (event: Event) => {
+      setSyncError((event as CustomEvent<string>).detail)
+    }
+    window.addEventListener('leining-sync-error', onSyncError)
+    const onSessionExpired = () => window.location.reload()
+    window.addEventListener('leining-session-expired', onSessionExpired)
+    initializeAuth().then(async (user) => {
+      if (!user) {
+        if (active) {
+          setInitialPosition(loadPosition())
+          setAuthReady(true)
+        }
+        return
+      }
+      if (active) setCurrentUser(user)
+      const data = await loadUserData(user)
+      if (!active) return
+      setHighlightedWords(new Set(data.highlights))
+      setSpeed(wpmToMs(data.wpm))
+      setInitialPosition(data.position)
+      setProfileReady(true)
+      setAuthReady(true)
+    }).catch((err: unknown) => {
+      console.error('Authentication initialization failed:', err)
+      if (active) {
+        setCurrentUser(getCurrentUser())
+        setSyncError(err instanceof Error ? err.message : String(err))
+        setAuthReady(true)
+      }
+    })
+    return () => {
+      active = false
+      window.removeEventListener('leining-sync-error', onSyncError)
+      window.removeEventListener('leining-session-expired', onSessionExpired)
+    }
+  }, [setSpeed])
+
+  // Restore an explicit URL first, then the authenticated or anonymous position.
+  const restoreStarted = useRef(false)
+  useEffect(() => {
+    if (!authReady || (currentUser && !profileReady) || restoreStarted.current) return
+    restoreStarted.current = true
     const urlRoute = parseCurrentUrl()
     if (urlRoute) {
       if (urlRoute.parashaEn) {
@@ -315,20 +358,25 @@ export default function App() {
         return
       }
     }
-    // Fallback: restore last position from localStorage
-    const pos = loadPosition()
+    const pos = initialPosition
     if (pos) {
-      const ref = `${pos.book} ${pos.chapter}:${pos.verse}`
-      loadText(ref, pos.book, pos.chapter, pos.verse).then((parsed) => {
+      const ref = pos.ref ?? `${pos.book} ${pos.chapter}:${pos.verse}`
+      const aliyot = pos.parashaName
+        ? fetchParashot().then((items) => items.find((item) => item.en === pos.parashaName)?.aliyotRefs).catch((err) => {
+          console.warn('Failed to restore aliyot:', err)
+          return undefined
+        })
+        : Promise.resolve(undefined)
+      aliyot.then((refs) => loadText(ref, pos.book, pos.chapter, pos.verse, pos.parashaName, refs)).then((parsed) => {
         if (parsed) {
-          const verseKey = getVerseKeyAtIndex(parsed, pos.wordIndex)
+          const index = Math.min(pos.wordIndex, parsed.length - 1)
+          const verseKey = getVerseKeyAtIndex(parsed, index)
           if (verseKey) setPracticeVerseRange({ start: verseKey, end: verseKey })
-          setCurrentWordIndex(pos.wordIndex)
+          setCurrentWordIndex(index)
         }
       })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [authReady, currentUser, profileReady, initialPosition, loadText, setCurrentWordIndex])
 
   const handleWordClick = useCallback((index: number) => {
     setCurrentWordIndex(index)
@@ -341,128 +389,95 @@ export default function App() {
   }, [])
 
   const handleToggleHighlight = useCallback((wordKey: string) => {
-    setHighlightedWords((prev) => {
-      const next = new Set(prev)
-      if (next.has(wordKey)) {
-        next.delete(wordKey)
-      } else {
-        next.add(wordKey)
-      }
-      saveHighlights(next)
-      return next
-    })
-  }, [])
+    const next = new Set(highlightedWordsRef.current)
+    if (next.has(wordKey)) next.delete(wordKey)
+    else next.add(wordKey)
+    highlightedWordsRef.current = next
+    setHighlightedWords(next)
+    if (currentUser && profileReady) saveUserData(currentUser, { highlights: [...next] })
+    else if (!currentUser) saveHighlights(next)
+  }, [currentUser, profileReady])
 
   // Persist speed changes for the current user (or anonymously)
-  const currentUserRef = useRef(currentUser)
-  useEffect(() => { currentUserRef.current = currentUser }, [currentUser])
   const handleSpeedChange = useCallback((newSpeed: number) => {
     setSpeed(newSpeed)
     const wpm = msToWpm(newSpeed)
-    if (currentUserRef.current) {
-      const cached = loadUserData(currentUserRef.current)
-      saveUserData(currentUserRef.current, {
-        highlights: [...highlightedWordsRef.current],
-        wpm,
-        position: cached?.position ?? null,
-      })
-    } else {
-      saveSpeed(wpm)
-    }
-  }, [setSpeed])
-
-  // Auth handlers
-  const handleLogin = useCallback((username: string, data: UserData) => {
-    setCurrentUser(username)
-    setHighlightedWords(new Set(data.highlights))
-    saveHighlights(new Set(data.highlights))
-    setSpeed(wpmToMs(data.wpm))
-    setShowAuthModal(false)
-    // Restore server-side position if no text is currently loaded
-    if (data.position && wordsRef.current.length === 0) {
-      const { book, chapter, verse, wordIndex } = data.position
-      loadText(`${book} ${chapter}:${verse}`, book, chapter, verse).then((parsed) => {
-        if (parsed) {
-          const verseKey = getVerseKeyAtIndex(parsed, wordIndex)
-          if (verseKey) setPracticeVerseRange({ start: verseKey, end: verseKey })
-          setCurrentWordIndex(wordIndex)
-        }
-      })
-    }
-  }, [setSpeed, loadText, setCurrentWordIndex])
+    if (currentUser && profileReady) saveUserData(currentUser, { wpm })
+    else if (!currentUser) saveSpeed(wpm)
+  }, [setSpeed, currentUser, profileReady])
 
   const handleLogout = useCallback(() => {
     logoutUser()
-    setCurrentUser(null)
+    window.location.reload()
   }, [])
 
-  // When highlights or speed change and a user is logged in, persist to their profile (debounced)
-  const saveUserTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const latestPositionRef = useRef<ReadingPosition | null>(null)
+  const positionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
+    if (!authReady || !bookInfo.book || !words.length || (currentUser && !profileReady)) return
+    const position: ReadingPosition = {
+      book: bookInfo.book, chapter: bookInfo.chapter, verse: bookInfo.startVerse,
+      wordIndex: currentWordIndex, ...readingRef.current,
+    }
+    latestPositionRef.current = position
+    if (!currentUser) {
+      savePosition(position)
+    } else if (!positionTimerRef.current) {
+      positionTimerRef.current = setTimeout(() => {
+        positionTimerRef.current = null
+        if (latestPositionRef.current) saveUserData(currentUser, { position: latestPositionRef.current })
+      }, 2000)
+    }
+  }, [authReady, bookInfo, currentWordIndex, currentUser, profileReady, words.length])
+
+  useEffect(() => {
+    const saveLatestPosition = () => {
+      if (currentUser && profileReady && latestPositionRef.current) {
+        saveUserData(currentUser, { position: latestPositionRef.current })
+      }
+    }
+    window.addEventListener('pagehide', saveLatestPosition)
+    return () => {
+      window.removeEventListener('pagehide', saveLatestPosition)
+      if (positionTimerRef.current) clearTimeout(positionTimerRef.current)
+      positionTimerRef.current = null
+    }
+  }, [currentUser, profileReady])
+
+  const handleImport = async () => {
     if (!currentUser) return
-    if (saveUserTimerRef.current) clearTimeout(saveUserTimerRef.current)
-    saveUserTimerRef.current = setTimeout(() => {
-      const cached = loadUserData(currentUser)
-      saveUserData(currentUser, {
-        highlights: [...highlightedWords],
-        wpm: msToWpm(speed),
-        position: cached?.position ?? null,
-      })
-    }, 500)
-    return () => {
-      if (saveUserTimerRef.current) clearTimeout(saveUserTimerRef.current)
-    }
-  }, [highlightedWords, currentUser, speed])
-
-  // Persist reading position to the server for logged-in users (debounced 2 s)
-  // Uses refs for bookInfo so the effect only re-runs when the word index or user changes.
-  const savePositionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => {
-    if (!currentUser || !bookInfoRef.current.book) return
-    if (savePositionTimerRef.current) clearTimeout(savePositionTimerRef.current)
-    savePositionTimerRef.current = setTimeout(() => {
-      if (!bookInfoRef.current.book) return
-      const pos = {
-        book: bookInfoRef.current.book,
-        chapter: bookInfoRef.current.chapter,
-        verse: bookInfoRef.current.startVerse,
-        wordIndex: currentWordIndex,
+    setImporting(true)
+    if (positionTimerRef.current) clearTimeout(positionTimerRef.current)
+    positionTimerRef.current = null
+    setImportMessage(false)
+    setSyncError(null)
+    try {
+      const legacy = localStorage.getItem('leining_user_cache')
+      const cached = legacy ? JSON.parse(legacy) as Partial<UserData> : {}
+      const highlights = [...new Set([...loadHighlights(), ...(Array.isArray(cached.highlights) ? cached.highlights : [])])]
+      const wpm = loadSpeed() ?? cached.wpm
+      const position = loadPosition() ?? cached.position
+      const data = await importUserData(currentUser, { highlights, ...(wpm ? { wpm } : {}), ...(position ? { position } : {}) })
+      setHighlightedWords((previous) => new Set([...previous, ...data.highlights]))
+      setSpeed(wpmToMs(data.wpm))
+      if (position) {
+        if (positionTimerRef.current) clearTimeout(positionTimerRef.current)
+        positionTimerRef.current = null
+        latestPositionRef.current = position
+        const refs = position.parashaName
+          ? (await fetchParashot()).find((item) => item.en === position.parashaName)?.aliyotRefs
+          : undefined
+        const parsed = await loadText(position.ref ?? `${position.book} ${position.chapter}:${position.verse}`, position.book, position.chapter, position.verse, position.parashaName, refs)
+        if (parsed) setCurrentWordIndex(Math.min(position.wordIndex, parsed.length - 1))
       }
-      const cached = loadUserData(currentUser)
-      saveUserData(currentUser, {
-        highlights: cached?.highlights ?? [],
-        wpm: cached?.wpm ?? 75,
-        position: pos,
-      })
-    }, 2000)
-    return () => {
-      if (savePositionTimerRef.current) clearTimeout(savePositionTimerRef.current)
+      setImportMessage(true)
+    } catch (err) {
+      console.error('Import failed:', err)
+      setSyncError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setImporting(false)
     }
-  }, [currentWordIndex, currentUser])
-
-  // On mount with a logged-in session: refresh data from server in the background.
-  // loadText and setCurrentWordIndex are stable (useCallback/useState setters) so
-  // this runs effectively once, restoring the user's highlights and reading position.
-  useEffect(() => {
-    const user = getCurrentUser()
-    if (!user) return
-    refreshUserData(user).then((data) => {
-      if (!data) return
-      setHighlightedWords(new Set(data.highlights))
-      saveHighlights(new Set(data.highlights))
-      // Only restore server position if no text is currently displayed
-      if (data.position && wordsRef.current.length === 0) {
-        const { book, chapter, verse, wordIndex } = data.position
-        loadText(`${book} ${chapter}:${verse}`, book, chapter, verse).then((parsed) => {
-          if (parsed) {
-            const verseKey = getVerseKeyAtIndex(parsed, wordIndex)
-            if (verseKey) setPracticeVerseRange({ start: verseKey, end: verseKey })
-            setCurrentWordIndex(wordIndex)
-          }
-        })
-      }
-    })
-  }, [loadText, setCurrentWordIndex])
+  }
 
   const handleRashiWordClick = useCallback((index: number) => {
     setRashiCurrentWordIndex(index)
@@ -503,12 +518,20 @@ export default function App() {
         <div className={styles.headerEnd}>
           {currentUser ? (
             <div className={styles.userInfo}>
-              <span className={styles.userName}>👤 {currentUser}</span>
+              <span className={styles.userName}>👤 {getUserName()}</span>
+              <button className={styles.authBtn} disabled={!profileReady || importing} onClick={handleImport}>
+                {importing ? '...' : 'ייבוא נתונים מקומיים'}
+              </button>
               <button className={styles.authBtn} onClick={handleLogout}>יציאה</button>
             </div>
           ) : (
-            <button className={styles.authBtn} onClick={() => setShowAuthModal(true)}>
-              👤 כניסה / הרשמה
+            <button className={styles.authBtn} disabled={!authReady} onClick={() => {
+              login().catch((err: unknown) => {
+                console.error('Login failed:', err)
+                setSyncError(err instanceof Error ? err.message : String(err))
+              })
+            }}>
+              👤 כניסה עם Pocket ID
             </button>
           )}
           <label className={styles.themeToggle}>
@@ -523,14 +546,14 @@ export default function App() {
         </div>
       </header>
 
-      {showAuthModal && (
-        <AuthModal
-          currentData={{ highlights: [...highlightedWords], wpm: msToWpm(speed) }}
-          onLogin={handleLogin}
-          onClose={() => setShowAuthModal(false)}
-        />
-      )}
+      {syncError && <div className={styles.syncError} role="alert">שגיאת התחברות או סנכרון: {syncError} <button onClick={() => window.location.reload()}>נסה שוב</button></div>}
+      {importMessage && <div className={styles.syncMessage} role="status">הנתונים המקומיים יובאו בהצלחה</div>}
 
+      {authReady && (!currentUser || profileReady) && <div
+        className={styles.workspace}
+        aria-busy={importing}
+        ref={(element) => { if (element) element.inert = importing }}
+      >
       <Navigation
         onLoad={loadText}
         useRashiFont={useRashiFont}
@@ -557,7 +580,15 @@ export default function App() {
           {error && <div className={styles.error}>{error}</div>}
           {!loading && !error && (
             isSeferTorahMode ? (
-              <SeferTorahDisplay words={words} />
+              <SeferTorahDisplay
+                words={words}
+                currentWordIndex={currentWordIndex}
+                onWordClick={handleWordClick}
+                bookName={bookInfo.book}
+                highlightedWords={highlightedWords}
+                onToggleHighlight={handleToggleHighlight}
+                revealAllTaamim={revealAllTaamim}
+              />
             ) : isRashiMode ? (
               <TextDisplay
                 words={rashiWords}
@@ -608,7 +639,7 @@ export default function App() {
         )}
       </div>
 
-      {showTaamVideo && !isRashiMode && !isSeferTorahMode && (
+      {showTaamVideo && !isRashiMode && (
         <TaamVideoPanel
           match={videoMatch}
           nextUrl={nextVideoUrl}
@@ -626,6 +657,7 @@ export default function App() {
         onPause={isRashiMode ? rashiPause : pause}
         onSpeedChange={isRashiMode ? setRashiSpeed : handleSpeedChange}
       />
+      </div>}
 
       <footer className={styles.footer}>
         <a

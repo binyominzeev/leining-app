@@ -1,6 +1,7 @@
 import { Fragment, useLayoutEffect, useMemo, useRef } from 'react'
 import type React from 'react'
 import type { Word } from '../types'
+import { getWordKeys } from '../utils/wordKeys'
 import styles from './TextDisplay.module.css'
 
 type Props = {
@@ -94,18 +95,7 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
   }, [currentWordIndex])
 
   // Precompute each word's position within its verse for stable highlight keys
-  const posInVerseMap = useMemo(() => {
-    const map = new Map<number, number>()
-    const counts = new Map<string, number>()
-    for (const word of words) {
-      if (word.breakType) continue
-      const key = `${word.chapter ?? 0}:${word.verse ?? 0}`
-      const pos = counts.get(key) ?? 0
-      map.set(word.index, pos)
-      counts.set(key, pos + 1)
-    }
-    return map
-  }, [words])
+  const wordKeys = useMemo(() => getWordKeys(words, bookName ?? ''), [words, bookName])
 
   const verseMetadataMap = useMemo(() => {
     const map = new Map<number, VerseMetadata>()
@@ -205,8 +195,7 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
         const content = showShvaNa && !rashiPractice
           ? renderWithShvaNaHighlight(word, displayText)
           : displayText
-        const posInVerse = posInVerseMap.get(word.index) ?? 0
-        const wordKey = `${bookName ?? ''}|${word.chapter ?? 0}|${word.verse ?? 0}|${posInVerse}`
+        const wordKey = wordKeys.get(word.index) ?? ''
         const isHighlighted = highlightedWords?.has(wordKey) ?? false
         const verseMetadata = verseMetadataMap.map.get(word.index)
         const isVerseInRange =

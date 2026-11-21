@@ -3,43 +3,60 @@ const db = require('../db')
 const { requireAuth } = require('./auth')
 
 const router = express.Router()
+router.use(requireAuth)
 
-// GET /api/user/data
-router.get('/data', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT highlights, wpm, position FROM users WHERE username = ?').get(req.username)
-  if (!user) return res.status(404).json({ error: 'not_found' })
-  const highlights = JSON.parse(user.highlights ?? '[]')
-  const position = user.position ? JSON.parse(user.position) : null
-  return res.json({ highlights, wpm: user.wpm, position })
+function readData(subject) {
+  const row = db.prepare('SELECT highlights, wpm, position FROM oidc_user_data WHERE subject = ?').get(subject)
+  return row
+    ? { highlights: JSON.parse(row.highlights), wpm: row.wpm, position: row.position ? JSON.parse(row.position) : null }
+    : { highlights: [], wpm: 75, position: null }
+}
+
+function validPosition(position) {
+  return position === null || (position && typeof position === 'object' &&
+    typeof position.book === 'string' && position.book.length > 0 &&
+    Number.isInteger(position.chapter) && position.chapter > 0 &&
+    Number.isInteger(position.verse) && position.verse > 0 &&
+    Number.isInteger(position.wordIndex) && position.wordIndex >= 0 &&
+    (position.ref === undefined || typeof position.ref === 'string') &&
+    (position.parashaName === undefined || typeof position.parashaName === 'string'))
+}
+
+function validData(data) {
+  return data && typeof data === 'object' &&
+    (data.highlights === undefined || (Array.isArray(data.highlights) && data.highlights.every((key) => typeof key === 'string'))) &&
+    (data.wpm === undefined || (typeof data.wpm === 'number' && Number.isFinite(data.wpm) && data.wpm > 0)) &&
+    (data.position === undefined || validPosition(data.position))
+}
+
+function writeData(subject, data) {
+  db.prepare(`INSERT INTO oidc_user_data (subject, highlights, wpm, position) VALUES (?, ?, ?, ?)
+    ON CONFLICT(subject) DO UPDATE SET highlights = excluded.highlights, wpm = excluded.wpm,
+      position = excluded.position, updated_at = CURRENT_TIMESTAMP`)
+    .run(subject, JSON.stringify(data.highlights), data.wpm, data.position === null ? null : JSON.stringify(data.position))
+}
+
+router.get('/data', (req, res) => res.json(readData(req.userId)))
+
+router.put('/data', (req, res) => {
+  if (!validData(req.body) || !['highlights', 'wpm', 'position'].some((key) => key in req.body)) {
+    return res.status(400).json({ error: 'Invalid user data' })
+  }
+  const data = { ...readData(req.userId), ...req.body }
+  writeData(req.userId, data)
+  return res.json(data)
 })
 
-// PUT /api/user/data
-router.put('/data', requireAuth, (req, res) => {
-  const { highlights, wpm, position } = req.body ?? {}
-
-  /** @type {{ col: 'highlights'|'wpm'|'position', value: unknown }[]} */
-  const fields = []
-
-  if (Array.isArray(highlights)) {
-    fields.push({ col: 'highlights', value: JSON.stringify(highlights) })
+router.post('/import', (req, res) => {
+  if (!validData(req.body)) return res.status(400).json({ error: 'Invalid user data' })
+  const existing = readData(req.userId)
+  const data = {
+    highlights: [...new Set([...existing.highlights, ...(req.body.highlights ?? [])])],
+    wpm: req.body.wpm ?? existing.wpm,
+    position: req.body.position ?? existing.position,
   }
-  if (Number.isFinite(Number(wpm))) {
-    fields.push({ col: 'wpm', value: Number(wpm) })
-  }
-  if (position !== undefined) {
-    fields.push({ col: 'position', value: position === null ? null : JSON.stringify(position) })
-  }
-
-  if (fields.length === 0) {
-    return res.status(400).json({ error: 'no_data' })
-  }
-
-  // Build parameterised SET clause using only the validated column names
-  const setClauses = fields.map(({ col }) => `${col} = ?`).join(', ')
-  const params = [...fields.map(({ value }) => value), req.username]
-
-  db.prepare(`UPDATE users SET ${setClauses}, updated_at = CURRENT_TIMESTAMP WHERE username = ?`).run(...params)
-  return res.json({ ok: true })
+  writeData(req.userId, data)
+  return res.json(data)
 })
 
 module.exports = router

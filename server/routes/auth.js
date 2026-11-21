@@ -1,92 +1,72 @@
 const express = require('express')
-const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
-const db = require('../db')
 
 const router = express.Router()
-// JWT_SECRET: the fallback is only reached in development since index.js exits
-// in production if the env var is missing. Never deploy without setting JWT_SECRET.
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret'
-const JWT_EXPIRES_IN = '90d'
-const BCRYPT_ROUNDS = 12
+const issuer = process.env.OIDC_ISSUER?.replace(/\/$/, '')
+let jwksPromise
 
-function signToken(username) {
-  return jwt.sign({ sub: username.toLowerCase() }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
-}
+async function requireAuth(req, res, next) {
+  if (!issuer) return res.status(503).json({ error: 'Authentication is not configured' })
+  const match = (req.get('authorization') || '').match(/^Bearer\s+(.+)$/i)
+  if (!match) return res.status(401).json({ error: 'Bearer token required' })
 
-// POST /api/auth/register
-router.post('/register', async (req, res) => {
-  const { username, password, highlights, wpm } = req.body ?? {}
-
-  if (!username || typeof username !== 'string' || username.trim().length < 2) {
-    return res.status(400).json({ error: 'שם משתמש חייב להכיל לפחות 2 תווים' })
-  }
-  if (!password || typeof password !== 'string' || password.length < 6) {
-    return res.status(400).json({ error: 'הסיסמה חייבת להכיל לפחות 6 תווים' })
-  }
-
-  const trimmed = username.trim().toLowerCase()
-  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(trimmed)
-  if (existing) {
-    return res.status(409).json({ error: 'exists' })
-  }
-
-  const hash = await bcrypt.hash(password, BCRYPT_ROUNDS)
-  const highlightsJson = JSON.stringify(Array.isArray(highlights) ? highlights : [])
-  const safewpm = Number.isFinite(Number(wpm)) ? Number(wpm) : 75
-
-  db.prepare(
-    'INSERT INTO users (username, password_hash, highlights, wpm) VALUES (?, ?, ?, ?)'
-  ).run(trimmed, hash, highlightsJson, safewpm)
-
-  const token = signToken(trimmed)
-  return res.status(201).json({ token, username: trimmed, highlights: JSON.parse(highlightsJson), wpm: safewpm, position: null })
-})
-
-// POST /api/auth/login
-router.post('/login', async (req, res) => {
-  const { username, password } = req.body ?? {}
-  if (!username || !password) {
-    return res.status(400).json({ error: 'שם משתמש וסיסמה נדרשים' })
-  }
-
-  const trimmed = username.trim().toLowerCase()
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(trimmed)
-  if (!user) return res.status(401).json({ error: 'wrong_credentials' })
-
-  const match = await bcrypt.compare(password, user.password_hash)
-  if (!match) return res.status(401).json({ error: 'wrong_credentials' })
-
-  const token = signToken(trimmed)
-  const highlights = JSON.parse(user.highlights ?? '[]')
-  const position = user.position ? JSON.parse(user.position) : null
-  return res.json({ token, username: trimmed, highlights, wpm: user.wpm, position })
-})
-
-// GET /api/auth/me  (requires Authorization: Bearer <token>)
-router.get('/me', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(req.username)
-  if (!user) return res.status(404).json({ error: 'not_found' })
-  const highlights = JSON.parse(user.highlights ?? '[]')
-  const position = user.position ? JSON.parse(user.position) : null
-  return res.json({ username: req.username, highlights, wpm: user.wpm, position })
-})
-
-// ── middleware ─────────────────────────────────────────────────────────────
-
-function requireAuth(req, res, next) {
-  const auth = req.headers['authorization']
-  if (!auth || !auth.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'unauthorized' })
-  }
-  const token = auth.slice(7)
   try {
-    const payload = jwt.verify(token, JWT_SECRET)
-    req.username = payload.sub
-    next()
-  } catch {
-    return res.status(401).json({ error: 'invalid_token' })
+    const { createRemoteJWKSet, jwtVerify } = await import('jose')
+    jwksPromise ??= createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`))
+    const { payload } = await jwtVerify(match[1], jwksPromise, {
+      issuer,
+      ...(process.env.OIDC_AUDIENCE ? { audience: process.env.OIDC_AUDIENCE } : {}),
+    })
+    if (typeof payload.sub !== 'string' || !payload.sub) {
+      return res.status(401).json({ error: 'Token has no subject' })
+    }
+    req.userId = payload.sub
+    return next()
+  } catch (error) {
+    console.error('Access token verification failed:', error.message)
+    return res.status(401).json({ error: 'Invalid access token' })
   }
 }
+
+router.get('/config', (_req, res) => {
+  const clientId = process.env.OIDC_CLIENT_ID
+  if (!issuer || !clientId) return res.status(503).json({ error: 'Authentication is not configured' })
+  res.json({ issuer, clientId })
+})
+
+async function exchange(params) {
+  const clientId = process.env.OIDC_CLIENT_ID
+  const clientSecret = process.env.OIDC_CLIENT_SECRET
+  if (!issuer || !clientId || !clientSecret) {
+    return { status: 503, body: JSON.stringify({ error: 'OIDC server configuration is incomplete' }) }
+  }
+  const response = await fetch(`${issuer}/api/oidc/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, ...params }),
+  })
+  return { status: response.status, body: await response.text() }
+}
+
+router.post('/token', async (req, res, next) => {
+  const { code, code_verifier: verifier, redirect_uri: redirectUri } = req.body ?? {}
+  const configuredUri = process.env.OIDC_REDIRECT_URI
+  if (!configuredUri) return res.status(503).json({ error: 'OIDC server configuration is incomplete' })
+  if (typeof code !== 'string' || !code || typeof verifier !== 'string' || !verifier || redirectUri !== configuredUri) {
+    return res.status(400).json({ error: 'Invalid OIDC token request' })
+  }
+  try {
+    const result = await exchange({ grant_type: 'authorization_code', code, code_verifier: verifier, redirect_uri: configuredUri })
+    res.status(result.status).type('application/json').send(result.body)
+  } catch (error) { next(error) }
+})
+
+router.post('/refresh', async (req, res, next) => {
+  const token = req.body?.refresh_token
+  if (typeof token !== 'string' || !token) return res.status(400).json({ error: 'Invalid refresh request' })
+  try {
+    const result = await exchange({ grant_type: 'refresh_token', refresh_token: token })
+    res.status(result.status).type('application/json').send(result.body)
+  } catch (error) { next(error) }
+})
 
 module.exports = { router, requireAuth }

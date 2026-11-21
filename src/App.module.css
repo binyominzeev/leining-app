@@ -35,6 +35,27 @@
   gap: 8px;
 }
 
+.syncError {
+  direction: rtl;
+  padding: 8px 20px;
+  color: var(--error-color);
+  background: var(--bg-secondary);
+}
+
+.syncMessage {
+  direction: rtl;
+  padding: 8px 20px;
+  color: var(--text-accent);
+  background: var(--bg-secondary);
+}
+
+.workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
 .userName {
   font-size: 0.85rem;
   color: var(--text-accent);

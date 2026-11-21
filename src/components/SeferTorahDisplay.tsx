@@ -1,16 +1,28 @@
-import { useMemo } from 'react'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 import type { Word } from '../types'
+import { getWordKeys } from '../utils/wordKeys'
 import styles from './SeferTorahDisplay.module.css'
 
 type Props = {
   words: Word[]
+  currentWordIndex: number
+  onWordClick: (index: number) => void
+  bookName: string
+  highlightedWords: Set<string>
+  onToggleHighlight: (key: string) => void
+  revealAllTaamim: boolean
 }
 
 const COLUMN_WIDTH_PX = 280
 const COLUMN_GAP_PX = 32
 const APPROX_WORDS_PER_COLUMN = 65
 
-export default function SeferTorahDisplay({ words }: Props) {
+export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick, bookName, highlightedWords, onToggleHighlight, revealAllTaamim }: Props) {
+  const activeRef = useRef<HTMLSpanElement | null>(null)
+  const wordKeys = useMemo(() => getWordKeys(words, bookName), [words, bookName])
+  useLayoutEffect(() => {
+    activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+  }, [currentWordIndex])
   // Estimate container width based on word/break count so CSS columns have room to expand
   const containerWidth = useMemo(() => {
     let realWordCount = 0
@@ -49,9 +61,24 @@ export default function SeferTorahDisplay({ words }: Props) {
               </span>
             )
           }
+          const isActive = word.index === currentWordIndex
+          const isPast = word.index < currentWordIndex
+          const wordKey = wordKeys.get(word.index) ?? ''
           return (
-            <span key={word.index} className={styles.word}>
-              {word.plain}{' '}
+            <span
+              key={word.index}
+              ref={isActive ? activeRef : undefined}
+              className={[styles.word, isActive ? styles.active : '', isPast ? styles.past : '', highlightedWords.has(wordKey) ? styles.highlighted : ''].filter(Boolean).join(' ')}
+              onClick={() => onWordClick(word.index)}
+              onContextMenu={(event) => { event.preventDefault(); onToggleHighlight(wordKey) }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') onWordClick(word.index)
+                if (event.key === ' ') event.preventDefault()
+              }}
+            >
+              {revealAllTaamim || isPast || isActive ? word.full : word.plain}{' '}
             </span>
           )
         })}

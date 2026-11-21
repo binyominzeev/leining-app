@@ -10,9 +10,9 @@ A web app for practising Torah reading (leining) with cantillation marks (ta'ami
   - *Manual* — choose any book, chapter, and verse range from the full Tanach
   - *Parasha* — load the current week's Torah portion directly from the Sefaria calendar
 - **Progress persistence** — your last reading position is saved so you can pick up where you left off
-- **User accounts** — register/login to sync your highlights, speed, and reading position across devices
+- **Pocket ID accounts** — sync highlights, speed, and reading position across devices
 - **Right-to-left Hebrew UI** with Frank Ruhl Libre typeface
-- **Sefer Torah mode** to see which aliyah is how long
+- **Sefer Torah mode** — column view with playback, word highlighting, hand-sign videos, and aliyah markers
 
 ## Screenshots
 
@@ -59,14 +59,15 @@ ffmpeg -i in.mov -an -vf scale=-2:480 -r 30 -c:v libx264 -pix_fmt yuv420p \
 | Text source | [Sefaria API](https://www.sefaria.org/developers) |
 | Backend | Node.js + Express |
 | Database | SQLite (via better-sqlite3) |
-| Auth | JWT (jsonwebtoken) |
+| Auth | Pocket ID OIDC (Authorization Code + PKCE, JWT verification with jose) |
 
 ## Getting Started (local development)
 
 ### Prerequisites
 
-- Node.js 18 or later
+- Node.js 20, 22, 23, 24 or 25 (required by better-sqlite3)
 - npm 9 or later
+- A Pocket ID client with a registered redirect URI
 
 ### Install frontend dependencies
 
@@ -79,9 +80,16 @@ npm install
 ```bash
 cd server
 npm install
-cp .env.example .env   # edit .env and set JWT_SECRET
+cp .env.example .env   # edit .env and configure Pocket ID
 cd ..
 ```
+
+Set `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI`
+and `CORS_ORIGIN` in `server/.env`. The redirect URI must exactly match the
+registered Pocket ID URI and the frontend origin followed by `/` (for example
+`http://localhost:5173/`). Set `OIDC_AUDIENCE` if access tokens have an
+audience to enforce. The client secret stays on the backend; the frontend gets
+the public issuer and client ID from `/api/auth/config`.
 
 ### Start the backend
 
@@ -121,14 +129,13 @@ server/                   # Node.js/Express API backend
 ├── index.js              # Entry point – starts the server
 ├── db.js                 # SQLite database setup
 ├── routes/
-│   ├── auth.js           # POST /api/auth/register, /api/auth/login, GET /api/auth/me
-│   └── user.js           # GET/PUT /api/user/data
+│   ├── auth.js           # Pocket ID token proxy and JWT validation
+│   └── user.js           # Profile data and local-data import
 ├── package.json
 └── .env.example          # Sample environment variables
 
 src/
 ├── components/           # React UI components
-│   ├── AuthModal         # Login / Register modal
 │   ├── Controls          # Playback controls (play/pause, speed)
 │   ├── Navigation        # Book/chapter/parasha selector
 │   ├── TaamPanel         # Cantillation mark display
@@ -136,7 +143,7 @@ src/
 ├── hooks/
 │   └── usePlayback       # Playback state and timer logic
 ├── utils/
-│   ├── auth.ts           # Auth API client + JWT/cache helpers
+│   ├── auth.ts           # OIDC client, token refresh and pending sync
 │   ├── hebrew.ts         # Hebrew text parsing helpers
 │   ├── sefaria.ts        # Sefaria API client + book/parasha data
 │   ├── storage.ts        # LocalStorage position persistence (anonymous)
@@ -153,7 +160,22 @@ src/
 2. **Load** — press the *טען* button to fetch the Hebrew text from Sefaria.
 3. **Read** — click the play button (▶) to advance through the words automatically, or click any word to jump to it.
 4. **Adjust speed** — use the speed slider in the controls bar to set a comfortable pace.
-5. **Account** — click *כניסה / הרשמה* in the top-right corner to register or log in. Your highlights, speed setting, and reading position are then saved on the server and synced across devices.
+5. **Account** — click *כניסה עם Pocket ID* and sign in. Highlights, speed and
+   reading position are saved per Pocket ID subject. Failed writes are kept
+   locally and retried on reload or when the tab becomes visible.
+6. **Import old data** — after signing in, click *ייבוא נתונים מקומיים* on
+   the device containing your old data. Highlights from local storage and the
+   previous account cache are merged with the account's existing highlights;
+   locally saved speed and position replace the account values when present.
+   The local data is not deleted. Import is explicit to avoid mixing data from
+   different people using the same browser. Old server-only username/password
+   accounts are not automatically linked to Pocket ID; import their cached data
+   from the browser where they were used.
+
+Access and refresh tokens are stored in browser localStorage, as in the
+Pocket ID setup guide. A script injection could read them; use HTTPS and protect
+the app against XSS. Signing out clears the app's tokens, but does not log the
+user out of Pocket ID itself.
 
 ---
 
@@ -164,7 +186,7 @@ This section documents how to install the app on a VPS and keep it up to date.
 ### Server requirements
 
 - Ubuntu 22.04 (or similar Debian-based distro)
-- Node.js 18+ (`nvm` recommended)
+- Node.js 20+ supported by better-sqlite3 (`nvm` recommended)
 - Nginx (as a reverse proxy)
 - PM2 (process manager for the Node.js backend)
 
@@ -207,19 +229,23 @@ npm run build
 cd server
 npm install
 cp .env.example .env
-nano .env          # set PORT, JWT_SECRET, ALLOWED_ORIGINS, DATA_DIR
+nano .env          # configure the Pocket ID client and deployment
 ```
 
 Recommended `.env` values for production:
 
 ```
 PORT=3001
-JWT_SECRET=<long-random-string>
-ALLOWED_ORIGINS=https://yourdomain.com
+OIDC_ISSUER=https://auth.binjomin.hu
+OIDC_CLIENT_ID=<pocket-id-client-id>
+OIDC_CLIENT_SECRET=<pocket-id-client-secret>
+OIDC_REDIRECT_URI=https://yourdomain.com/
+CORS_ORIGIN=https://yourdomain.com
 DATA_DIR=/var/www/leining-app/server/data
 ```
 
-Generate a strong secret with: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
+Register the exact redirect URI in Pocket ID. The API binds to `127.0.0.1`;
+use the reverse proxy for external access. An empty `CORS_ORIGIN` disables CORS.
 
 #### 6. Start the backend with PM2
 

@@ -34,6 +34,8 @@ export type ReadingPosition = {
   chapter: number
   verse: number
   wordIndex: number
+  ref?: string
+  parashaName?: string
 }
 
 export type VerseRange = {

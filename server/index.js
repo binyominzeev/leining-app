@@ -6,26 +6,16 @@ const rateLimit = require('express-rate-limit')
 const { router: authRouter } = require('./routes/auth')
 const userRouter = require('./routes/user')
 
-// Require a real JWT_SECRET in production
-if (!process.env.JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    console.error('FATAL: JWT_SECRET environment variable is not set. Refusing to start.')
-    process.exit(1)
-  } else {
-    console.warn('WARNING: JWT_SECRET is not set. Using an insecure default — set it before deploying!')
-  }
-}
-
 const app = express()
 const PORT = process.env.PORT || 3001
 
 // ── Middleware ────────────────────────────────────────────────────────────
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map((s) => s.trim())
-  : ['http://localhost:5173', 'http://localhost:4173']
+const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean)
 
-app.use(cors({ origin: allowedOrigins, credentials: true }))
-app.use(express.json())
+app.disable('x-powered-by')
+app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : false, methods: ['GET', 'POST', 'PUT'], allowedHeaders: ['Authorization', 'Content-Type'] }))
+app.use(express.json({ limit: '1mb' }))
+app.use(express.urlencoded({ extended: false, limit: '10kb' }))
 
 // ── Rate limiting ─────────────────────────────────────────────────────────
 // Strict limit for auth endpoints (register/login) to prevent brute force
@@ -54,6 +44,6 @@ app.use('/api/user', apiLimiter, userRouter)
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
 // ── Start ─────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT, '127.0.0.1', () => {
   console.log(`Leining App API server running on port ${PORT}`)
 })
