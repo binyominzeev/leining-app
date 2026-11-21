@@ -33,13 +33,16 @@
 }
 
 .preview {
+  display: inline-block;
   position: relative;
+  vertical-align: baseline;
 }
 
 .full {
   position: absolute;
   inset-inline-start: 0;
-  top: 0;
+  top: 50%;
+  transform: translateY(-50%);
   line-height: normal;
   white-space: nowrap;
   visibility: hidden;
