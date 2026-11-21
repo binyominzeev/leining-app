@@ -1,0 +1,102 @@
+.statsButton {
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-accent);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.statsButton:hover {
+  background: var(--btn-active-bg);
+}
+
+.dialog {
+  width: min(620px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.dialogHeader h2 {
+  color: var(--text-gold);
+  font-size: 1.15rem;
+}
+
+.closeButton {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-accent);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.table th,
+.table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table thead th {
+  color: var(--text-accent);
+  font-size: 0.9rem;
+}
+
+.table tbody th {
+  color: var(--text-gold);
+}
+
+.unavailable {
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+@media (max-width: 640px) {
+  .statsButton {
+    padding: 7px 8px;
+    font-size: 0.75rem;
+  }
+
+  .dialog {
+    padding: 16px 12px;
+  }
+
+  .table th,
+  .table td {
+    padding: 8px 5px;
+    font-size: 0.85rem;
+  }
+}

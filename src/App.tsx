@@ -655,6 +655,10 @@ export default function App() {
         onPlay={isRashiMode ? rashiPlay : play}
         onPause={isRashiMode ? rashiPause : pause}
         onSpeedChange={isRashiMode ? setRashiSpeed : handleSpeedChange}
+        parashaName={currentParashaName}
+        words={words}
+        bookName={bookInfo.book}
+        highlightedWords={highlightedWords}
       />
       </div>}
 

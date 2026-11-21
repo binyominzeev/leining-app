@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import type { Word } from '../types'
 import { MIN_WPM, MAX_WPM, wpmToMs, msToWpm } from '../config/playbackConfig'
+import AliyahStatsDialog from './AliyahStatsDialog'
 import styles from './Controls.module.css'
 
 type Props = {
@@ -10,6 +12,10 @@ type Props = {
   onPlay: () => void
   onPause: () => void
   onSpeedChange: (speed: number) => void
+  parashaName: string | null
+  words: Word[]
+  bookName: string
+  highlightedWords: Set<string>
 }
 
 function formatTime(ms: number, isNegative: boolean = false): string {
@@ -21,7 +27,7 @@ function formatTime(ms: number, isNegative: boolean = false): string {
   return `\u202D${sign}${timeString}\u202C`
 }
 
-export default function Controls({ isPlaying, speed, wordCount, currentWordIndex, onPlay, onPause, onSpeedChange }: Props) {
+export default function Controls({ isPlaying, speed, wordCount, currentWordIndex, onPlay, onPause, onSpeedChange, parashaName, words, bookName, highlightedWords }: Props) {
   const [showRemaining, setShowRemaining] = useState(false)
 
   const wpm = msToWpm(speed)
@@ -65,6 +71,14 @@ export default function Controls({ isPlaying, speed, wordCount, currentWordIndex
           className={styles.slider}
         />
       </div>
+      {parashaName && (
+        <AliyahStatsDialog
+          parashaName={parashaName}
+          words={words}
+          bookName={bookName}
+          highlightedWords={highlightedWords}
+        />
+      )}
     </div>
   )
 }
