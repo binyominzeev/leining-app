@@ -39,6 +39,29 @@ function writeData(subject, data) {
 
 router.get('/data', (req, res) => res.json(readData(req.userId)))
 
+router.get('/bookmarks', (req, res) => {
+  const bookmarks = db.prepare('SELECT book, chapter, verse FROM verse_bookmarks WHERE subject = ? ORDER BY book, chapter, verse').all(req.userId)
+  return res.json(bookmarks)
+})
+
+router.put('/bookmarks', (req, res) => {
+  const { book, chapter, verse, saved } = req.body ?? {}
+  if (typeof book !== 'string' || !book.trim() || book.length > 100 ||
+      !Number.isSafeInteger(chapter) || chapter < 1 || chapter > 999 ||
+      !Number.isSafeInteger(verse) || verse < 1 || verse > 999 ||
+      typeof saved !== 'boolean') {
+    return res.status(400).json({ error: 'Invalid bookmark' })
+  }
+  if (saved) {
+    db.prepare('INSERT OR IGNORE INTO verse_bookmarks (subject, book, chapter, verse) VALUES (?, ?, ?, ?)')
+      .run(req.userId, book, chapter, verse)
+  } else {
+    db.prepare('DELETE FROM verse_bookmarks WHERE subject = ? AND book = ? AND chapter = ? AND verse = ?')
+      .run(req.userId, book, chapter, verse)
+  }
+  return res.json({ book, chapter, verse, saved })
+})
+
 router.put('/data', (req, res) => {
   if (!validData(req.body) || !['highlights', 'wpm', 'position', 'scrollFontScale'].some((key) => key in req.body)) {
     return res.status(400).json({ error: 'Invalid user data' })

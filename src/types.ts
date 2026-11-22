@@ -38,6 +38,12 @@ export type ReadingPosition = {
   parashaName?: string
 }
 
+export type VerseBookmark = {
+  book: string
+  chapter: number
+  verse: number
+}
+
 export type VerseRange = {
   startVerse: number
   endVerse: number

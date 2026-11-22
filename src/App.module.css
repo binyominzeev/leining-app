@@ -29,6 +29,33 @@
   gap: 12px;
 }
 
+.bookmarkStar,
+.bookmarksLink {
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-gold);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.bookmarkStar {
+  padding: 0 7px;
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+
+.bookmarkStar:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.bookmarksLink {
+  padding: 5px 8px;
+  font-size: 0.85rem;
+}
+
 .mobileHeaderToggle {
   display: none;
 }
@@ -269,6 +296,7 @@
   .headerStart,
   .headerEnd {
     flex-wrap: wrap;
+    gap: 6px;
   }
 
   .mobileHeaderToggle {

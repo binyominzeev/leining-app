@@ -31,6 +31,14 @@ db.exec(`
     scroll_font_scale INTEGER NOT NULL DEFAULT 100,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS verse_bookmarks (
+    subject TEXT NOT NULL,
+    book TEXT NOT NULL,
+    chapter INTEGER NOT NULL,
+    verse INTEGER NOT NULL,
+    PRIMARY KEY (subject, book, chapter, verse)
+  );
 `)
 
 db.transaction(() => {

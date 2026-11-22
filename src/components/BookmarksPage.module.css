@@ -1,0 +1,102 @@
+.page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.content {
+  max-width: 900px;
+  margin: auto;
+}
+
+.content h2 {
+  color: var(--text-gold);
+  margin-bottom: 12px;
+}
+
+.search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: var(--text-accent);
+}
+
+.search input {
+  max-width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.book {
+  border-bottom: 1px solid var(--border-color);
+  padding: 10px 0;
+}
+
+.book summary {
+  cursor: pointer;
+  color: var(--text-gold);
+  font-size: 1.15rem;
+}
+
+.chapter {
+  padding: 10px 0;
+}
+
+.chapter h3 {
+  font-size: 1rem;
+  color: var(--text-accent);
+}
+
+.verses {
+  list-style: none;
+}
+
+.verse {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.verseLink {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 12px;
+  color: var(--text-display);
+  text-decoration: none;
+  font-size: 1.3rem;
+  line-height: 1.8;
+}
+
+.verseLink:hover {
+  color: var(--text-accent);
+}
+
+.reference {
+  color: var(--text-accent);
+  direction: ltr;
+  white-space: nowrap;
+}
+
+.remove {
+  border: 0;
+  background: transparent;
+  color: var(--text-gold);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 12px;
+  }
+}

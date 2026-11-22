@@ -113,8 +113,30 @@ test('Pocket ID tokens isolate profiles and local import merges without losing h
   assert.equal((await request(bob, 'PUT', '/data', { highlights: [42] })).status, 400)
   assert.equal((await request(bob, 'PUT', '/data', { position: { book: 'Genesis' } })).status, 400)
   assert.deepEqual((await request(alice)).data, { highlights: ['old', 'shared', 'local'], wpm: 120, position, scrollFontScale: 140 })
+  const first = { book: 'Genesis', chapter: 1, verse: 1 }
+  const second = { book: 'Genesis', chapter: 1, verse: 2 }
+  assert.deepEqual((await request(alice, 'GET', '/bookmarks')).data, [])
+  assert.equal((await request(alice, 'PUT', '/bookmarks', { ...first, saved: true })).status, 200)
+  await request(alice, 'PUT', '/bookmarks', { ...first, saved: true })
+  await request(alice, 'PUT', '/bookmarks', { ...second, saved: true })
+  await request(bob, 'PUT', '/bookmarks', { ...first, saved: true })
+  assert.deepEqual((await request(alice, 'GET', '/bookmarks')).data, [first, second])
+  await request(alice, 'PUT', '/bookmarks', { ...first, saved: false })
+  await request(alice, 'PUT', '/bookmarks', { ...first, saved: false })
+  assert.deepEqual((await request(alice, 'GET', '/bookmarks')).data, [second])
+  assert.deepEqual((await request(bob, 'GET', '/bookmarks')).data, [first])
+  for (const invalid of [
+    { ...first, saved: 'true' },
+    { ...first, chapter: 0, saved: true },
+    { ...first, verse: 1.5, saved: true },
+    { ...first, book: '', saved: true },
+  ]) {
+    assert.equal((await request(alice, 'PUT', '/bookmarks', invalid)).status, 400)
+  }
+  assert.deepEqual((await request(alice, 'GET', '/bookmarks')).data, [second])
   delete require.cache[require.resolve('../db')]
   const reopened = require('../db')
   assert.equal(reopened.prepare('SELECT scroll_font_scale FROM oidc_user_data WHERE subject = ?').get('alice').scroll_font_scale, 140)
+  assert.deepEqual(reopened.prepare('SELECT book, chapter, verse FROM verse_bookmarks WHERE subject = ?').all('alice'), [second])
   reopened.close()
 })

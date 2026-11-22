@@ -1,15 +1,17 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
-import type { ReadingPosition, Word } from './types'
+import type { ReadingPosition, VerseBookmark, Word } from './types'
 import { parseVerseText, parseSefariaResponse, insertAliyahMarkers } from './utils/hebrew'
 import { fetchSefariaText, fetchAliyot, parseAliyotRefs, fetchParashot, STATIC_PARASHOT, TANACH_BOOKS } from './utils/sefaria'
 import { savePosition, loadPosition, saveHighlights, loadHighlights, saveSpeed, loadSpeed } from './utils/storage'
-import { getCurrentUser, getUserName, initializeAuth, login, loadUserData, saveUserData, logoutUser } from './utils/auth'
+import { getCurrentUser, getUserName, initializeAuth, login, loadUserData, saveUserData, logoutUser, loadUserBookmarks, saveBookmarkChange } from './utils/auth'
+import { bookmarkKey, isVerseBookmark, loadLocalBookmarks, saveLocalBookmarks } from './utils/bookmarks'
 import { updateUrl, parseCurrentUrl } from './utils/url'
 import { usePlayback } from './hooks/usePlayback'
 import Navigation from './components/Navigation'
 import TextDisplay from './components/TextDisplay'
 import SeferTorahDisplay from './components/SeferTorahDisplay'
 import Controls from './components/Controls'
+import BookmarksPage from './components/BookmarksPage'
 import RashiTextPanel from './components/RashiTextPanel'
 import TaamVideoPanel from './components/TaamVideoPanel'
 import { buildVideoTimeline } from './utils/taamSequences'
@@ -37,6 +39,7 @@ function getVerseKeyAtIndex(words: Word[], index: number): string | null {
 }
 
 export default function App() {
+  const isBookmarksPage = window.location.pathname === '/bookmarks'
   const [mobileHeaderExpanded, setMobileHeaderExpanded] = useState(false)
   const [words, setWords] = useState<Word[]>([])
   const [loading, setLoading] = useState(false)
@@ -73,6 +76,11 @@ export default function App() {
     return 'ההתחברות פגה. יש להתחבר מחדש.'
   })
   const [initialPosition, setInitialPosition] = useState<ReadingPosition | null>(null)
+  const [bookmarks, setBookmarks] = useState<VerseBookmark[]>([])
+  const [bookmarksReady, setBookmarksReady] = useState(false)
+  const [bookmarksLoadFailed, setBookmarksLoadFailed] = useState(false)
+  const bookmarksRef = useRef<VerseBookmark[]>([])
+  const bookmarkRevisionRef = useRef(0)
 
   // Initial playback speed: load from user profile or anonymous localStorage
   const [initialSpeed] = useState<number>(() => {
@@ -205,6 +213,8 @@ export default function App() {
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.tagName === 'SELECT' ||
+        target.tagName === 'BUTTON' ||
+        target.tagName === 'A' ||
         target.isContentEditable
       ) return
       if (e.code === 'Space') {
@@ -325,11 +335,55 @@ export default function App() {
     }
   }, [setSpeed])
 
+  useEffect(() => {
+    if (!authReady || (currentUser && !profileReady)) return
+    let active = true
+    const load = currentUser ? loadUserBookmarks(currentUser) : Promise.resolve().then(loadLocalBookmarks)
+    load.then((items) => {
+      if (!active) return
+      bookmarksRef.current = items
+      setBookmarks(items)
+      setBookmarksReady(true)
+    }).catch((err: unknown) => {
+      console.error('Failed to load verse bookmarks:', err)
+      if (active) {
+        setBookmarksLoadFailed(true)
+        setSyncError(err instanceof Error ? err.message : String(err))
+      }
+    })
+    return () => { active = false }
+  }, [authReady, currentUser, profileReady])
+
+  useEffect(() => {
+    if (!currentUser || !bookmarksReady) return
+    let active = true
+    let requestId = 0
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return
+      const revision = bookmarkRevisionRef.current
+      const request = ++requestId
+      loadUserBookmarks(currentUser).then((items) => {
+        if (!active || request !== requestId || revision !== bookmarkRevisionRef.current) return
+        bookmarksRef.current = items
+        setBookmarks(items)
+      }).catch((err: unknown) => {
+        console.error('Failed to refresh verse bookmarks:', err)
+        if (active) setSyncError(err instanceof Error ? err.message : String(err))
+      })
+    }
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      active = false
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [currentUser, bookmarksReady])
+
   // Restore an explicit URL first, then the authenticated or anonymous position.
   const restoreStarted = useRef(false)
   useEffect(() => {
     if (!authReady || (currentUser && !profileReady) || restoreStarted.current) return
     restoreStarted.current = true
+    if (isBookmarksPage) return
     const urlRoute = parseCurrentUrl()
     if (urlRoute) {
       if (urlRoute.parashaEn) {
@@ -390,7 +444,7 @@ export default function App() {
         }
       })
     }
-  }, [authReady, currentUser, profileReady, initialPosition, loadText, setCurrentWordIndex])
+  }, [authReady, currentUser, profileReady, initialPosition, isBookmarksPage, loadText, setCurrentWordIndex])
 
   const handleWordClick = useCallback((index: number) => {
     setCurrentWordIndex(index)
@@ -411,6 +465,22 @@ export default function App() {
     if (currentUser && profileReady) saveUserData(currentUser, { highlights: [...next] })
     else if (!currentUser) saveHighlights(next)
   }, [currentUser, profileReady])
+
+  const setBookmark = useCallback((bookmark: VerseBookmark, saved: boolean) => {
+    if (!bookmarksReady) return
+    const next = bookmarksRef.current.filter((item) => bookmarkKey(item) !== bookmarkKey(bookmark))
+    if (saved) next.push(bookmark)
+    try {
+      if (currentUser) saveBookmarkChange(currentUser, bookmark, saved)
+      else saveLocalBookmarks(next)
+      bookmarkRevisionRef.current += 1
+      bookmarksRef.current = next
+      setBookmarks(next)
+    } catch (err) {
+      console.error('Failed to save verse bookmark:', err)
+      setSyncError(err instanceof Error ? err.message : String(err))
+    }
+  }, [bookmarksReady, currentUser])
 
   // Persist speed changes for the current user (or anonymously)
   const handleSpeedChange = useCallback((newSpeed: number) => {
@@ -485,12 +555,27 @@ export default function App() {
   const currentBookMeta = TANACH_BOOKS.find((b) => b.name === bookInfo.book)
   const hasPrevChapter = !!bookInfo.book && bookInfo.chapter > 1
   const hasNextChapter = !!currentBookMeta && bookInfo.chapter < currentBookMeta.chapters
+  const bookmarkCandidate = { book: bookInfo.book, chapter: currentWord?.chapter, verse: currentWord?.verse }
+  const activeBookmark = currentWord && !currentWord.breakType && isVerseBookmark(bookmarkCandidate)
+    ? bookmarkCandidate : null
+  const isBookmarked = !!activeBookmark && bookmarks.some((item) => bookmarkKey(item) === bookmarkKey(activeBookmark))
 
   return (
     <div className={styles.app}>
       <header className={styles.header}>
         <div className={styles.headerStart}>
           <h1 className={styles.title}>Leining App</h1>
+          {!isBookmarksPage && (
+            <button type="button" className={styles.bookmarkStar} disabled={!bookmarksReady || !activeBookmark || isRashiMode || loading || !!error}
+              aria-label={isBookmarked ? 'הסר סימניית פסוק' : 'סמן פסוק לתרגול'} aria-pressed={isBookmarked}
+              title={isBookmarked ? 'הסר סימניית פסוק' : 'סמן פסוק לתרגול'}
+              onClick={() => { if (activeBookmark) setBookmark(activeBookmark, !isBookmarked) }}>
+              {isBookmarked ? '★' : '☆'}
+            </button>
+          )}
+          <a className={styles.bookmarksLink} href={isBookmarksPage ? '/' : '/bookmarks'}>
+            {isBookmarksPage ? 'חזרה לקריאה' : 'פסוקים ★'}
+          </a>
           <a
             href="https://myshiurim.com"
             target="_blank"
@@ -530,7 +615,7 @@ export default function App() {
           type="button"
           className={styles.mobileHeaderToggle}
           aria-expanded={mobileHeaderExpanded}
-          aria-controls="header-options navigation-options"
+          aria-controls={isBookmarksPage ? 'header-options' : 'header-options navigation-options'}
           onClick={() => setMobileHeaderExpanded((expanded) => !expanded)}
         >
           {mobileHeaderExpanded ? 'סגור הגדרות ▲' : 'הגדרות ▼'}
@@ -539,6 +624,10 @@ export default function App() {
 
       {syncError && <div className={styles.syncError} role="alert">שגיאת התחברות או סנכרון: {syncError} <button onClick={() => window.location.reload()}>נסה שוב</button></div>}
       {authReady && (!currentUser || profileReady) && <div className={styles.workspace}>
+      {isBookmarksPage ? (
+        <BookmarksPage bookmarks={bookmarks} ready={bookmarksReady} loadFailed={bookmarksLoadFailed} onRemove={(bookmark) => setBookmark(bookmark, false)} />
+      ) : (
+      <>
       <div id="navigation-options" className={!mobileHeaderExpanded ? styles.mobileCollapsed : undefined}>
       <Navigation
         onLoad={loadText}
@@ -672,6 +761,8 @@ export default function App() {
         bookName={bookInfo.book}
         highlightedWords={highlightedWords}
       />
+      </>
+      )}
       </div>}
 
       <footer className={styles.footer}>

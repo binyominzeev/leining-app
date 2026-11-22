@@ -10,9 +10,12 @@ A web app for practising Torah reading (leining) with cantillation marks (ta'ami
   - *Manual* — choose any book, chapter, and verse range from the full Tanach
   - *Parasha* — load the current week's Torah portion directly from the Sefaria calendar
 - **Progress persistence** — your last reading position is saved so you can pick up where you left off
-- **Pocket ID accounts** — sync highlights, speed, reading position, and scroll font size across devices
+- **Pocket ID accounts** — sync highlights, verse bookmarks, speed, reading position, and scroll font size across devices
+- **Verses to practise** — bookmark the current verse with ☆; browse, search, remove, and open saved verses from the ★ list
 - **Right-to-left Hebrew UI** with Frank Ruhl Libre typeface
 - **Sefer Torah mode** — column view with playback, word highlighting, hand-sign videos, and aliyah markers
+
+Verse bookmarks are independent of word highlights and use the same book, chapter, and verse in both reading modes. Anonymous bookmarks are stored in the browser; signed-in bookmarks belong to the Pocket ID account and are not automatically merged with anonymous bookmarks. Failed signed-in changes are queued locally and retried when the app becomes visible or the connection returns. The list loads verse text from Sefaria as chapters come into view; references remain available if text loading fails.
 
 ## Screenshots
 

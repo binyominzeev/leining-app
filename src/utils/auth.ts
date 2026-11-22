@@ -1,5 +1,6 @@
-import type { ReadingPosition } from '../types'
+import type { ReadingPosition, VerseBookmark } from '../types'
 import { validScrollFontScale } from '../config/scrollConfig'
+import { bookmarkKey, isVerseBookmark, parseBookmarks } from './bookmarks'
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api'
 const ACCESS_KEY = 'leining_oidc_access'
@@ -9,6 +10,7 @@ const VERIFIER_KEY = 'leining_oidc_verifier'
 const STATE_KEY = 'leining_oidc_state'
 const RETURN_KEY = 'leining_oidc_return'
 const PENDING_PREFIX = 'leining_oidc_pending:'
+const BOOKMARK_PENDING_PREFIX = 'leining_bookmark_pending:'
 
 export type UserData = {
   highlights: string[]
@@ -33,6 +35,7 @@ let userName = localStorage.getItem(NAME_KEY) || ''
 let refreshTimer: ReturnType<typeof setTimeout> | undefined
 let refreshing: Promise<void> | null = null
 let saving: Promise<void> | null = null
+let savingBookmarks: Promise<void> | null = null
 let initialization: Promise<string | null> | null = null
 
 function claims(token: string): Claims {
@@ -260,10 +263,71 @@ export async function loadUserData(user: string): Promise<UserData> {
   return data
 }
 
+type BookmarkChange = VerseBookmark & { saved: boolean }
+
+function readPendingBookmarks(user: string): BookmarkChange[] {
+  const raw = localStorage.getItem(BOOKMARK_PENDING_PREFIX + user)
+  if (!raw) return []
+  const value: unknown = JSON.parse(raw)
+  if (!Array.isArray(value) || !value.every((item) =>
+    isVerseBookmark(item) && 'saved' in item && typeof item.saved === 'boolean')) {
+    throw new Error('Invalid pending verse bookmarks')
+  }
+  return value
+}
+
+export async function flushBookmarks(user: string): Promise<void> {
+  if (savingBookmarks) {
+    await savingBookmarks
+    if (getCurrentUser() === user && readPendingBookmarks(user).length) return flushBookmarks(user)
+    return
+  }
+  savingBookmarks = (async () => {
+    while (getCurrentUser() === user) {
+      const change = readPendingBookmarks(user)[0]
+      if (!change) return
+      await api('/user/bookmarks', { method: 'PUT', body: JSON.stringify(change) })
+      const remaining = readPendingBookmarks(user)
+      const index = remaining.findIndex((item) => bookmarkKey(item) === bookmarkKey(change) && item.saved === change.saved)
+      if (index >= 0) remaining.splice(index, 1)
+      if (remaining.length) localStorage.setItem(BOOKMARK_PENDING_PREFIX + user, JSON.stringify(remaining))
+      else localStorage.removeItem(BOOKMARK_PENDING_PREFIX + user)
+    }
+  })().finally(() => { savingBookmarks = null })
+  return savingBookmarks
+}
+
+export function saveBookmarkChange(user: string, bookmark: VerseBookmark, saved: boolean): void {
+  const changes = readPendingBookmarks(user).filter((item) => bookmarkKey(item) !== bookmarkKey(bookmark))
+  changes.push({ ...bookmark, saved })
+  localStorage.setItem(BOOKMARK_PENDING_PREFIX + user, JSON.stringify(changes))
+  flushBookmarks(user).catch(reportError)
+}
+
+export async function loadUserBookmarks(user: string): Promise<VerseBookmark[]> {
+  await flushBookmarks(user)
+  const response = await api('/user/bookmarks')
+  const bookmarks = parseBookmarks(await readJson<unknown>(response))
+  const merged = new Map(bookmarks.map((bookmark) => [bookmarkKey(bookmark), bookmark]))
+  for (const change of readPendingBookmarks(user)) {
+    if (change.saved) merged.set(bookmarkKey(change), { book: change.book, chapter: change.chapter, verse: change.verse })
+    else merged.delete(bookmarkKey(change))
+  }
+  return [...merged.values()]
+}
+
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible' || !accessToken) return
   const exp = claims(accessToken).exp
   if (refreshToken && (!exp || exp * 1000 - Date.now() < 60000)) refreshAccessToken().catch(reportError)
   const user = getCurrentUser()
-  if (user) flushUserData(user).catch(reportError)
+  if (user) {
+    flushUserData(user).catch(reportError)
+    flushBookmarks(user).catch(reportError)
+  }
+})
+
+window.addEventListener('online', () => {
+  const user = getCurrentUser()
+  if (user) flushBookmarks(user).catch(reportError)
 })
