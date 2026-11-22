@@ -315,9 +315,9 @@
 /* ── Mobile: collapse to 2-column scrollable list ──────────────────── */
 @media (max-width: 640px) {
   .megaMenu {
-    min-width: min(480px, 96vw);
-    max-height: 60vh;
-    overflow-y: auto;
+    position: static;
+    min-width: 0;
+    width: min(480px, calc(100vw - 44px));
   }
 
   .megaMenuGrid {
@@ -330,6 +330,8 @@
   .nav {
     padding: 8px 10px;
     gap: 6px;
+    max-height: 40dvh;
+    overflow-y: auto;
   }
 
   .modeToggle button {

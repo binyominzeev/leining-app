@@ -128,6 +128,10 @@ npm run build
 
 The compiled output is placed in the `dist/` directory.
 
+### Lint
+
+Run `npm run lint` from the project root to check the frontend and server code.
+
 ### Preview production build
 
 ```bash

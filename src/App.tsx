@@ -37,6 +37,7 @@ function getVerseKeyAtIndex(words: Word[], index: number): string | null {
 }
 
 export default function App() {
+  const [mobileHeaderExpanded, setMobileHeaderExpanded] = useState(false)
   const [words, setWords] = useState<Word[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -494,12 +495,12 @@ export default function App() {
             href="https://myshiurim.com"
             target="_blank"
             rel="noopener noreferrer"
-            className={styles.siteLink}
+            className={`${styles.siteLink} ${!mobileHeaderExpanded ? styles.mobileCollapsed : ''}`}
           >
             myshiurim.com
           </a>
         </div>
-        <div className={styles.headerEnd}>
+        <div id="header-options" className={`${styles.headerEnd} ${!mobileHeaderExpanded ? styles.mobileCollapsed : ''}`}>
           {currentUser ? (
             <div className={styles.userInfo}>
               <span className={styles.userName}>👤 {getUserName()}</span>
@@ -525,10 +526,20 @@ export default function App() {
             />
           </label>
         </div>
+        <button
+          type="button"
+          className={styles.mobileHeaderToggle}
+          aria-expanded={mobileHeaderExpanded}
+          aria-controls="header-options navigation-options"
+          onClick={() => setMobileHeaderExpanded((expanded) => !expanded)}
+        >
+          {mobileHeaderExpanded ? 'סגור הגדרות ▲' : 'הגדרות ▼'}
+        </button>
       </header>
 
       {syncError && <div className={styles.syncError} role="alert">שגיאת התחברות או סנכרון: {syncError} <button onClick={() => window.location.reload()}>נסה שוב</button></div>}
       {authReady && (!currentUser || profileReady) && <div className={styles.workspace}>
+      <div id="navigation-options" className={!mobileHeaderExpanded ? styles.mobileCollapsed : undefined}>
       <Navigation
         onLoad={loadText}
         useRashiFont={useRashiFont}
@@ -569,6 +580,7 @@ export default function App() {
         showTaamVideo={showTaamVideo}
         onShowTaamVideoChange={handleTaamVideoChange}
       />
+      </div>
 
       <div className={`${styles.main} ${!useRashiFont ? styles.noSidebar : ''}`}>
         <div className={styles.textArea}>

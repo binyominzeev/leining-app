@@ -15,6 +15,10 @@
   background: var(--btn-active-bg);
 }
 
+.shortLabel {
+  display: none;
+}
+
 .dialog {
   width: min(620px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
@@ -85,6 +89,14 @@
 }
 
 @media (max-width: 640px) {
+  .fullLabel {
+    display: none;
+  }
+
+  .shortLabel {
+    display: inline;
+  }
+
   .statsButton {
     padding: 7px 8px;
     font-size: 0.75rem;

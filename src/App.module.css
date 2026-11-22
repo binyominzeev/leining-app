@@ -29,6 +29,10 @@
   gap: 12px;
 }
 
+.mobileHeaderToggle {
+  display: none;
+}
+
 .userInfo {
   display: flex;
   align-items: center;
@@ -139,6 +143,8 @@
 .main {
   display: flex;
   flex: 1;
+  min-height: 0;
+  min-width: 0;
   overflow: hidden;
   direction: rtl;
 }
@@ -156,6 +162,7 @@
 
 .textArea {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
   position: relative;
   display: flex;
@@ -249,8 +256,34 @@
 
 /* Mobile: compact layout so more text is visible */
 @media (max-width: 640px) {
+  .app {
+    height: 100dvh;
+  }
+
   .header {
     padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .headerStart,
+  .headerEnd {
+    flex-wrap: wrap;
+  }
+
+  .mobileHeaderToggle {
+    display: block;
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-accent);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .mobileCollapsed {
+    display: none;
   }
 
   .title {

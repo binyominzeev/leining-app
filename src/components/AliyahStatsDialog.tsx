@@ -50,8 +50,9 @@ export default function AliyahStatsDialog({ parashaName, words, bookName, highli
         className={styles.statsButton}
         onClick={() => dialogRef.current?.showModal()}
         aria-haspopup="dialog"
+        aria-label="סטטיסטיקת הדגשות"
       >
-        📊 סטטיסטיקת הדגשות
+        📊 <span className={styles.fullLabel}>סטטיסטיקת הדגשות</span><span className={styles.shortLabel}>סטט׳</span>
       </button>
       <dialog ref={dialogRef} className={styles.dialog} aria-labelledby="aliyah-stats-title" dir="rtl">
         <div className={styles.dialogHeader}>
