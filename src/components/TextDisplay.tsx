@@ -161,7 +161,7 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
   }, [words, currentWordIndex, fontSize, useRashiFont, rashiPractice, revealAllTaamim, showShvaNa])
 
   if (words.length === 0) {
-    return <div className={styles.empty}>בחר קטע לקריאה</div>
+    return <div className={styles.empty}>Select a passage to read</div>
   }
 
   return (
@@ -184,7 +184,7 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
           return <span key={word.index} className={styles.setumahBreak} />
         }
         if (word.breakType === 'aliyah') {
-          return <span key={word.index} className={styles.aliyahMarker}>{word.aliyahLabel}</span>
+          return <span key={word.index} className={styles.aliyahMarker} dir="ltr">{word.aliyahLabel}</span>
         }
 
         const isActive = word.index === currentWordIndex
@@ -225,13 +225,14 @@ export default function TextDisplay({ words, currentWordIndex, onWordClick, useR
                     onVerseClick?.(verseMetadata.key)
                   }
                 }}
-                aria-label={`פסוק ${verseMetadata.number}`}
+                aria-label={`Verse ${verseMetadata.number}`}
                 aria-pressed={isVerseInRange}
               >
                 <span className={styles.verseNumberLabel}>{verseMetadata.number}</span>
               </button>
             )}
             <span
+              lang="he"
               ref={(element) => {
                 if (isActive) activeRef.current = element
                 if (verseMetadata?.isStart) {

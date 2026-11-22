@@ -53,7 +53,7 @@
   --placeholder-color: #aaa;
 }
 
-/* Global reset & RTL defaults */
+/* Global reset */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -61,7 +61,7 @@
 }
 
 html, body {
-  direction: rtl;
+  direction: ltr;
   font-family: 'Taamey Frank CLM', serif;
   background: var(--bg-primary);
   color: var(--text-primary);

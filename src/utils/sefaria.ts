@@ -24,22 +24,22 @@ export async function fetchSefariaText(ref: string): Promise<SefariaTextResponse
 }
 
 /**
- * Hebrew ordinal labels for each aliyah number (2–8 / maftir).
+ * Labels for each aliyah number (2–8 / maftir).
  * Aliyah 1 has no printed label (it is the start of the reading).
  */
 export const ALIYAH_LABELS: Record<number, string> = {
-  2: 'שני',
-  3: 'שלישי',
-  4: 'רביעי',
-  5: 'חמישי',
-  6: 'שישי',
-  7: 'שביעי',
-  8: 'מפטיר',
+  2: 'Second',
+  3: 'Third',
+  4: 'Fourth',
+  5: 'Fifth',
+  6: 'Sixth',
+  7: 'Seventh',
+  8: 'Maftir',
 }
 
 export type AliyahMarker = {
   aliyah: number   // 1-based aliyah number
-  heLabel: string  // Hebrew ordinal label (e.g. שני)
+  label: string
   chapter: number
   verse: number
 }
@@ -48,7 +48,7 @@ export type AliyahMarker = {
  * Parse an array of aliyah refs (from the Sefaria index API) into AliyahMarker objects.
  * Each ref is the full range for one aliyah, e.g. "Genesis 1:1-2:3".
  * The start chapter:verse of each ref is used as the marker position.
- * Aliyah 1 is omitted (no printed label). Aliyah 8 is labelled מפטיר.
+ * Aliyah 1 is omitted (no printed label). Aliyah 8 is labelled Maftir.
  */
 export function parseAliyotRefs(refs: string[]): AliyahMarker[] {
   const markers: AliyahMarker[] = []
@@ -64,7 +64,7 @@ export function parseAliyotRefs(refs: string[]): AliyahMarker[] {
     if (!match) return
     markers.push({
       aliyah,
-      heLabel: label,
+      label,
       chapter: parseInt(match[1], 10),
       verse: parseInt(match[2], 10),
     })

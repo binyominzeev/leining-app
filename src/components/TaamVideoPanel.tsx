@@ -130,7 +130,7 @@ export default function TaamVideoPanel({ match, nextUrl, msPerWord, isPlaying }:
       className={styles.panel}
       style={{ left: geo.x, top: geo.y, width: geo.w, height: geo.h }}
     >
-      <div className={styles.label} onPointerDown={onDragStart} title="גרור להזזה">
+      <div className={styles.label} onPointerDown={onDragStart} title="Drag to move">
         {shown ? shown.key.split('_').join(' – ') : '\u00A0'}
       </div>
       {shown ? (

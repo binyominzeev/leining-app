@@ -5,14 +5,6 @@ import { MAX_SCROLL_FONT_SCALE, MIN_SCROLL_FONT_SCALE, SCROLL_FONT_SCALE_STEP } 
 
 const TORAH_BOOKS = ['Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy'] as const
 
-const BOOK_HEBREW: Record<string, string> = {
-  Genesis: 'בְּרֵאשִׁית',
-  Exodus: 'שְׁמוֹת',
-  Leviticus: 'וַיִּקְרָא',
-  Numbers: 'בְּמִדְבַּר',
-  Deuteronomy: 'דְּבָרִים',
-}
-
 type Props = {
   onLoad: (ref: string, book: string, chapter: number, startVerse: number, parashaName?: string, aliyotRefs?: string[]) => void
   useRashiFont: boolean
@@ -142,17 +134,19 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
       {mode === 'manual' ? (
         <div className={styles.manualForm}>
           <select
+            aria-label="Book"
             value={book}
             onChange={(e) => { setBook(e.target.value); setChapter(1); setStartVerse(1) }}
             className={styles.select}
           >
             {TANACH_BOOKS.map((b) => (
               <option key={b.name} value={b.name}>
-                {b.hebrewName} ({b.name})
+                {b.name}
               </option>
             ))}
           </select>
           <select
+            aria-label="Chapter"
             value={chapter}
             onChange={(e) => { setChapter(Number(e.target.value)); setStartVerse(1) }}
             className={styles.select}
@@ -168,7 +162,8 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
             value={startVerse}
             onChange={(e) => setStartVerse(Number(e.target.value))}
             className={styles.verseInput}
-            placeholder="מ"
+            aria-label="Starting verse"
+            placeholder="Verse"
           />
           <button className={styles.loadBtn} onClick={handleManualLoad}>
             Load
@@ -184,8 +179,8 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
               aria-expanded={megaMenuOpen}
             >
               {selectedParashaObj
-                ? `${selectedParashaObj.he} (${selectedParashaObj.en})`
-                : 'בחר פרשה' /* Select a parasha */}
+                ? selectedParashaObj.en
+                : 'Select a parasha'}
               <span className={styles.megaMenuArrow}>{megaMenuOpen ? '▲' : '▼'}</span>
             </button>
 
@@ -195,8 +190,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
                   {parashotByBook.map(({ book: bookName, parashot: bookParashot }) => (
                     <div key={bookName} className={styles.megaMenuColumn}>
                       <div className={styles.megaMenuBookHeader}>
-                        <span className={styles.megaMenuBookHe}>{BOOK_HEBREW[bookName]}</span>
-                        <span className={styles.megaMenuBookEn}>{bookName}</span>
+                        <span className={styles.megaMenuBookHe}>{bookName}</span>
                       </div>
                       {bookParashot.map((p) => (
                         <button
@@ -213,8 +207,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
                             setMegaMenuOpen(false)
                           }}
                         >
-                          <span className={styles.megaMenuParashaHe}>{p.he}</span>
-                          <span className={styles.megaMenuParashaEn}>{p.en}</span>
+                          <span className={styles.megaMenuParashaHe}>{p.en}</span>
                         </button>
                       ))}
                     </div>
@@ -240,7 +233,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
       </label>
       {useRashiFont && (
         <label className={styles.rashiSizeLabel}>
-          גודל:
+          Size:
           <input
             type="number"
             min={1.5}
@@ -258,7 +251,8 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
         <button
           className={[styles.seferTorahBtn, seferTorahMode ? styles.seferTorahBtnActive : ''].filter(Boolean).join(' ')}
           onClick={onSeferTorahModeToggle}
-          title={seferTorahMode ? 'חזרה למצב רגיל' : 'מצב ספר תורה'}
+          title={seferTorahMode ? 'Return to normal view' : 'Sefer Torah view'}
+          aria-label={seferTorahMode ? 'Return to normal view' : 'Sefer Torah view'}
           aria-pressed={seferTorahMode}
         >
           📜
@@ -267,25 +261,25 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
 
       {seferTorahMode && (
         <>
-          <div className={styles.scrollFontSize} role="group" aria-label="גודל כתב ספר תורה">
-            <span>גודל כתב:</span>
-            <button type="button" className={styles.seferTorahBtn} aria-label="הקטן כתב" disabled={scrollFontScale <= MIN_SCROLL_FONT_SCALE} onClick={() => onScrollFontScaleChange(Math.max(MIN_SCROLL_FONT_SCALE, scrollFontScale - SCROLL_FONT_SCALE_STEP))}>−</button>
+          <div className={styles.scrollFontSize} role="group" aria-label="Sefer Torah font size">
+            <span>Font size:</span>
+            <button type="button" className={styles.seferTorahBtn} aria-label="Decrease font size" disabled={scrollFontScale <= MIN_SCROLL_FONT_SCALE} onClick={() => onScrollFontScaleChange(Math.max(MIN_SCROLL_FONT_SCALE, scrollFontScale - SCROLL_FONT_SCALE_STEP))}>−</button>
             <span dir="ltr">{scrollFontScale}%</span>
-            <button type="button" className={styles.seferTorahBtn} aria-label="הגדל כתב" disabled={scrollFontScale >= MAX_SCROLL_FONT_SCALE} onClick={() => onScrollFontScaleChange(Math.min(MAX_SCROLL_FONT_SCALE, scrollFontScale + SCROLL_FONT_SCALE_STEP))}>+</button>
+            <button type="button" className={styles.seferTorahBtn} aria-label="Increase font size" disabled={scrollFontScale >= MAX_SCROLL_FONT_SCALE} onClick={() => onScrollFontScaleChange(Math.min(MAX_SCROLL_FONT_SCALE, scrollFontScale + SCROLL_FONT_SCALE_STEP))}>+</button>
           </div>
           <label className={styles.rashiCheckbox}>
             <input type="checkbox" checked={hideScrollMarks} onChange={(e) => onHideScrollMarksChange(e.target.checked)} />
-            הסתר ניקוד וטעמים
+            Hide vowels and cantillation
           </label>
           {hideScrollMarks && (
             <>
               <label className={styles.rashiCheckbox}>
                 <input type="checkbox" checked={delayedScrollMarks} onChange={(e) => onDelayedScrollMarksChange(e.target.checked)} />
-                הצג באיחור
+                Reveal after a delay
               </label>
               {delayedScrollMarks && (
                 <label className={styles.rashiSizeLabel}>
-                  מרחק במילים:
+                  Delay in words:
                   <input
                     className={styles.rashiSizeInput}
                     type="number"
@@ -297,7 +291,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
                     onChange={(e) => onScrollMarkDelayChange(e.currentTarget.value)}
                   />
                   {(scrollMarkDelay.trim() === '' || !Number.isSafeInteger(Number(scrollMarkDelay)) || Number(scrollMarkDelay) < 1) && (
-                    <span role="alert">יש להזין מספר שלם חיובי</span>
+                    <span role="alert">Enter a positive whole number</span>
                   )}
                 </label>
               )}
@@ -311,32 +305,32 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
           className={[styles.seferTorahBtn, revealAllTaamim ? styles.seferTorahBtnActive : ''].filter(Boolean).join(' ')}
           onClick={onRevealAllTaamimToggle}
           disabled={!!seferTorahMode && hideScrollMarks}
-          title={seferTorahMode && hideScrollMarks ? 'בטל הסתרת ניקוד וטעמים כדי להציג הכל' : revealAllTaamim ? 'חזרה למצב רגיל' : 'הצג כל המילים עם טעמים'}
+          title={seferTorahMode && hideScrollMarks ? 'Turn off hidden marks to reveal all' : revealAllTaamim ? 'Return to normal view' : 'Show all cantillation marks'}
           aria-pressed={revealAllTaamim}
         >
-          {revealAllTaamim ? 'הסתר' : 'הצג הכל'}
+          {revealAllTaamim ? 'Hide' : 'Show all'}
         </button>
       )}
 
       {onShowShvaNaChange && (
-        <label className={styles.rashiCheckbox} title="סימון שווא נע בתצוגת לימוד">
+        <label className={styles.rashiCheckbox} title="Mark vocal shva in study view">
           <input
             type="checkbox"
             checked={!!showShvaNa}
             onChange={(e) => onShowShvaNaChange(e.target.checked)}
           />
-          שווא נע
+          Vocal shva
         </label>
       )}
 
       {onShowTaamVideoChange && (
-        <label className={styles.rashiCheckbox} title="הצג סרטון תנועות ידיים לטעמים">
+        <label className={styles.rashiCheckbox} title="Show cantillation hand-sign videos">
           <input
             type="checkbox"
             checked={!!showTaamVideo}
             onChange={(e) => onShowTaamVideoChange(e.target.checked)}
           />
-          סרטון טעמים
+          Hand-sign video
         </label>
       )}
 
@@ -346,7 +340,7 @@ export default function Navigation({ onLoad, useRashiFont, onRashiFontChange, ra
           href={sefariaUrl(currentBook, currentChapter, currentVerse)}
           target="_blank"
           rel="noopener noreferrer"
-          title={`פתח ב-Sefaria: ${currentBook} ${currentChapter}:${currentVerse}`}
+          title={`Open in Sefaria: ${currentBook} ${currentChapter}:${currentVerse}`}
         >
           🔗 Sefaria
         </a>

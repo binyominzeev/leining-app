@@ -283,13 +283,13 @@ export function insertAliyahMarkers(words: Word[], markers: AliyahMarker[]): Wor
         result.push({
           index: 0, // will be re-indexed below
           plain: '',
-          full: marker.heLabel,
+          full: marker.label,
           taam: null,
           revealed: true,
           chapter: word.chapter,
           verse: word.verse,
           breakType: 'aliyah',
-          aliyahLabel: marker.heLabel,
+          aliyahLabel: marker.label,
         })
       }
     }

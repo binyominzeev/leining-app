@@ -12,10 +12,12 @@ A web app for practising Torah reading (leining) with cantillation marks (ta'ami
 - **Progress persistence** — your last reading position is saved so you can pick up where you left off
 - **Pocket ID accounts** — sync highlights, verse bookmarks, speed, reading position, and scroll font size across devices
 - **Verses to practise** — bookmark the current verse with ☆; browse, search, remove, and open saved verses from the ★ list
-- **Right-to-left Hebrew UI** with Frank Ruhl Libre typeface
+- **English interface and right-to-left Hebrew text**
 - **Sefer Torah mode** — column view with playback, word highlighting, hand-sign videos, and aliyah markers
 
 Verse bookmarks are independent of word highlights and use the same book, chapter, and verse in both reading modes. Anonymous bookmarks are stored in the browser; signed-in bookmarks belong to the Pocket ID account and are not automatically merged with anonymous bookmarks. Failed signed-in changes are queued locally and retried when the app becomes visible or the connection returns. The list loads verse text from Sefaria as chapters come into view; references remain available if text loading fails.
+
+Opening a favorite starts a tab-local practice session without changing the saved reading position. The practice banner shows the return location; choose **Return to reading** to restore it, or **Continue here** to make the current practice position the saved reading position.
 
 ## Screenshots
 
@@ -33,7 +35,7 @@ Sefer Torah mode (with aliyos showing):
 
 ## Hand-sign (trop) videos
 
-While reading, the app converts each word's ta'am to a hand-sign name (e.g. `mercha`, `tipcha`, `etnachta`) and plays the clip matching the **longest sequence** that starts at the current word (within one verse). If Mercha is followed by another cantillation mark on the same word, Mercha is ignored for video playback. Enable it with the "סרטון טעמים" checkbox.
+While reading, the app converts each word's ta'am to a hand-sign name (e.g. `mercha`, `tipcha`, `etnachta`) and plays the clip matching the **longest sequence** that starts at the current word (within one verse). If Mercha is followed by another cantillation mark on the same word, Mercha is ignored for video playback. Enable it with the "Hand-sign video" checkbox.
 
 ### Adding a clip
 
@@ -134,6 +136,8 @@ The compiled output is placed in the `dist/` directory.
 ### Lint
 
 Run `npm run lint` from the project root to check the frontend and server code.
+
+Run `npm test` for the frontend practice-session tests and `npm --prefix server test` for the backend tests.
 
 ### Preview production build
 

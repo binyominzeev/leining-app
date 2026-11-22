@@ -67,10 +67,47 @@
 }
 
 .syncError {
-  direction: rtl;
+  direction: ltr;
   padding: 8px 20px;
   color: var(--error-color);
   background: var(--bg-secondary);
+}
+
+.practiceBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding: 8px 20px;
+  background: var(--word-active-bg);
+  border-bottom: 1px solid var(--text-gold);
+  color: var(--text-primary);
+  direction: ltr;
+  font-size: 0.9rem;
+}
+
+.practiceActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.practiceActions a,
+.practiceActions button {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-accent);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.practiceActions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .workspace {
@@ -218,7 +255,7 @@
   justify-content: center;
   flex: 1;
   font-size: 1.2rem;
-  direction: rtl;
+  direction: ltr;
 }
 
 .loading {
@@ -291,6 +328,12 @@
     padding: 8px 12px;
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  .practiceBanner {
+    padding: 6px 12px;
+    max-height: 25dvh;
+    overflow-y: auto;
   }
 
   .headerStart,

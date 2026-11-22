@@ -6,7 +6,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  direction: rtl;
+  direction: ltr;
 }
 
 .modeToggle {
@@ -48,7 +48,7 @@
   font-size: 0.9rem;
   font-family: inherit;
   cursor: pointer;
-  direction: rtl;
+  direction: ltr;
 }
 
 .verseInput {
@@ -196,7 +196,7 @@
   font-size: 0.9rem;
   font-family: inherit;
   cursor: pointer;
-  direction: rtl;
+  direction: ltr;
   white-space: nowrap;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -216,7 +216,7 @@
 .megaMenu {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
+  left: 0;
   z-index: 200;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -232,7 +232,7 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 0 12px;
-  direction: rtl;
+  direction: ltr;
 }
 
 /* Column header (book name) */
@@ -268,13 +268,13 @@
 .megaMenuParasha {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   background: transparent;
   border: none;
   border-radius: 4px;
   padding: 4px 6px;
   cursor: pointer;
-  text-align: right;
+  text-align: left;
   width: 100%;
   transition: background 0.12s;
   gap: 1px;
@@ -310,6 +310,23 @@
 .megaMenuParashaSelected .megaMenuParashaEn {
   color: var(--text-accent);
   font-weight: 600;
+}
+
+@media (min-width: 641px) and (max-width: 1000px) {
+  .nav {
+    position: relative;
+  }
+
+  .megaMenuWrapper {
+    position: static;
+  }
+
+  .megaMenu {
+    left: 16px;
+    right: 16px;
+    min-width: 0;
+    max-width: none;
+  }
 }
 
 /* ── Mobile: collapse to 2-column scrollable list ──────────────────── */

@@ -20,12 +20,12 @@ export default function AliyahStatsDialog({ parashaName, words, bookName, highli
   const dialogRef = useRef<HTMLDialogElement>(null)
   const stats = useMemo(() => {
     const wordKeys = getWordKeys(words, bookName)
-    const sections: AliyahStats[] = [{ label: 'ראשון', highlightedCount: 0, totalCount: 0 }]
+    const sections: AliyahStats[] = [{ label: 'First', highlightedCount: 0, totalCount: 0 }]
 
     for (const word of words) {
       if (word.breakType === 'aliyah') {
         sections.push({
-          label: word.aliyahLabel ?? `עלייה ${sections.length + 1}`,
+          label: word.aliyahLabel ?? `Aliyah ${sections.length + 1}`,
           highlightedCount: 0,
           totalCount: 0,
         })
@@ -50,18 +50,18 @@ export default function AliyahStatsDialog({ parashaName, words, bookName, highli
         className={styles.statsButton}
         onClick={() => dialogRef.current?.showModal()}
         aria-haspopup="dialog"
-        aria-label="סטטיסטיקת הדגשות"
+        aria-label="Highlight statistics"
       >
-        📊 <span className={styles.fullLabel}>סטטיסטיקת הדגשות</span><span className={styles.shortLabel}>סטט׳</span>
+        📊 <span className={styles.fullLabel}>Highlight statistics</span><span className={styles.shortLabel}>Stats</span>
       </button>
-      <dialog ref={dialogRef} className={styles.dialog} aria-labelledby="aliyah-stats-title" dir="rtl">
+      <dialog ref={dialogRef} className={styles.dialog} aria-labelledby="aliyah-stats-title" dir="ltr">
         <div className={styles.dialogHeader}>
-          <h2 id="aliyah-stats-title">סטטיסטיקת הדגשות — {parashaName}</h2>
+          <h2 id="aliyah-stats-title">Highlight statistics — {parashaName}</h2>
           <button
             type="button"
             className={styles.closeButton}
             onClick={() => dialogRef.current?.close()}
-            aria-label="סגור"
+            aria-label="Close"
           >
             ×
           </button>
@@ -71,10 +71,10 @@ export default function AliyahStatsDialog({ parashaName, words, bookName, highli
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th scope="col">עלייה</th>
-                  <th scope="col">מסומנות</th>
-                  <th scope="col">סה״כ מילים</th>
-                  <th scope="col">אחוז</th>
+                  <th scope="col">Aliyah</th>
+                  <th scope="col">Highlighted</th>
+                  <th scope="col">Total words</th>
+                  <th scope="col">Percent</th>
                 </tr>
               </thead>
               <tbody>
@@ -96,7 +96,7 @@ export default function AliyahStatsDialog({ parashaName, words, bookName, highli
           </div>
         ) : (
           <p className={styles.unavailable}>
-            חלוקת העליות אינה זמינה לקריאה זו, ולכן לא ניתן להציג סטטיסטיקה לפי עלייה.
+            Aliyah divisions are unavailable for this reading, so statistics by aliyah cannot be displayed.
           </p>
         )}
       </dialog>

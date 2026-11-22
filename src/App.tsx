@@ -5,6 +5,7 @@ import { fetchSefariaText, fetchAliyot, parseAliyotRefs, fetchParashot, STATIC_P
 import { savePosition, loadPosition, saveHighlights, loadHighlights, saveSpeed, loadSpeed } from './utils/storage'
 import { getCurrentUser, getUserName, initializeAuth, login, loadUserData, saveUserData, logoutUser, loadUserBookmarks, saveBookmarkChange } from './utils/auth'
 import { bookmarkKey, isVerseBookmark, loadLocalBookmarks, saveLocalBookmarks } from './utils/bookmarks'
+import { initializePracticeSession, writePracticeSession, type PracticeSession } from './utils/practice'
 import { updateUrl, parseCurrentUrl } from './utils/url'
 import { usePlayback } from './hooks/usePlayback'
 import Navigation from './components/Navigation'
@@ -73,9 +74,10 @@ export default function App() {
   const [profileReady, setProfileReady] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(() => {
     if (!sessionStorage.getItem('leining_auth_expired')) return null
-    return 'ההתחברות פגה. יש להתחבר מחדש.'
+    return 'Your session has expired. Please sign in again.'
   })
   const [initialPosition, setInitialPosition] = useState<ReadingPosition | null>(null)
+  const [practiceSession, setPracticeSession] = useState<PracticeSession | null>(null)
   const [bookmarks, setBookmarks] = useState<VerseBookmark[]>([])
   const [bookmarksReady, setBookmarksReady] = useState(false)
   const [bookmarksLoadFailed, setBookmarksLoadFailed] = useState(false)
@@ -265,7 +267,7 @@ export default function App() {
       ])
       let parsed = parseSefariaResponse(data.he, chapter, startVerse)
       if (parsed.length === 0) {
-        setError('לא נמצא טקסט. נסה קטע אחר.')
+        setError('No text was found. Try another passage.')
         setLoading(false)
         return null
       }
@@ -287,7 +289,7 @@ export default function App() {
       setCurrentWordIndex(0)
       return parsed
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'שגיאה בטעינה')
+      setError(err instanceof Error ? err.message : 'Failed to load text.')
       return null
     } finally {
       setLoading(false)
@@ -306,7 +308,9 @@ export default function App() {
     initializeAuth().then(async (user) => {
       if (!user) {
         if (active) {
-          setInitialPosition(loadPosition())
+          const position = loadPosition()
+          setInitialPosition(position)
+          setPracticeSession(initializePracticeSession(null, position))
           setAuthReady(true)
         }
         return
@@ -317,6 +321,7 @@ export default function App() {
       setHighlightedWords(new Set(data.highlights))
       setSpeed(wpmToMs(data.wpm))
       setInitialPosition(data.position)
+      setPracticeSession(initializePracticeSession(user, data.position))
       setScrollFontScale(data.scrollFontScale)
       setProfileReady(true)
       setAuthReady(true)
@@ -384,7 +389,13 @@ export default function App() {
     if (!authReady || (currentUser && !profileReady) || restoreStarted.current) return
     restoreStarted.current = true
     if (isBookmarksPage) return
-    const urlRoute = parseCurrentUrl()
+    const returning = practiceSession?.phase === 'returning'
+    if (returning && !practiceSession.origin) {
+      writePracticeSession(null)
+      setPracticeSession(null)
+      return
+    }
+    const urlRoute = returning ? null : parseCurrentUrl()
     if (urlRoute) {
       if (urlRoute.parashaEn) {
         // Fetch the parasha list (cached after Navigation's call) to get aliyotRefs
@@ -426,7 +437,7 @@ export default function App() {
         return
       }
     }
-    const pos = initialPosition
+    const pos = returning ? practiceSession.origin : initialPosition
     if (pos) {
       const ref = pos.ref ?? `${pos.book} ${pos.chapter}:${pos.verse}`
       const aliyot = pos.parashaName
@@ -441,10 +452,14 @@ export default function App() {
           const verseKey = getVerseKeyAtIndex(parsed, index)
           if (verseKey) setPracticeVerseRange({ start: verseKey, end: verseKey })
           setCurrentWordIndex(index)
+          if (returning) {
+            writePracticeSession(null)
+            setPracticeSession(null)
+          }
         }
       })
     }
-  }, [authReady, currentUser, profileReady, initialPosition, isBookmarksPage, loadText, setCurrentWordIndex])
+  }, [authReady, currentUser, profileReady, initialPosition, isBookmarksPage, practiceSession, loadText, setCurrentWordIndex])
 
   const handleWordClick = useCallback((index: number) => {
     setCurrentWordIndex(index)
@@ -503,8 +518,9 @@ export default function App() {
 
   const latestPositionRef = useRef<ReadingPosition | null>(null)
   const positionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inPractice = practiceSession?.phase === 'active' || practiceSession?.phase === 'returning'
   useEffect(() => {
-    if (!authReady || !bookInfo.book || !words.length || (currentUser && !profileReady)) return
+    if (inPractice || !authReady || !bookInfo.book || !words.length || (currentUser && !profileReady)) return
     const position: ReadingPosition = {
       book: bookInfo.book, chapter: bookInfo.chapter, verse: bookInfo.startVerse,
       wordIndex: currentWordIndex, ...readingRef.current,
@@ -518,11 +534,11 @@ export default function App() {
         if (latestPositionRef.current) saveUserData(currentUser, { position: latestPositionRef.current })
       }, 2000)
     }
-  }, [authReady, bookInfo, currentWordIndex, currentUser, profileReady, words.length])
+  }, [authReady, bookInfo, currentWordIndex, currentUser, profileReady, words.length, inPractice])
 
   useEffect(() => {
     const saveLatestPosition = () => {
-      if (currentUser && profileReady && latestPositionRef.current) {
+      if (!inPractice && currentUser && profileReady && latestPositionRef.current) {
         saveUserData(currentUser, { position: latestPositionRef.current })
       }
     }
@@ -532,7 +548,65 @@ export default function App() {
       if (positionTimerRef.current) clearTimeout(positionTimerRef.current)
       positionTimerRef.current = null
     }
-  }, [currentUser, profileReady])
+  }, [currentUser, profileReady, inPractice])
+
+  const currentPosition = (): ReadingPosition | null => {
+    if (!bookInfo.book || !words.length) return null
+    return {
+      book: bookInfo.book, chapter: bookInfo.chapter, verse: bookInfo.startVerse,
+      wordIndex: currentWordIndex, ...readingRef.current,
+    }
+  }
+
+  const openFavorites = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (inPractice) return
+    if (!authReady || (currentUser && !profileReady)) {
+      event.preventDefault()
+      setSyncError('Please wait for your reading position to load.')
+      return
+    }
+    const visiblePosition = !loading && !error ? currentPosition() : null
+    const position = visiblePosition ?? latestPositionRef.current ?? initialPosition
+    try {
+      writePracticeSession({
+        owner: currentUser,
+        phase: 'draft',
+        origin: position,
+        originLabel: visiblePosition && currentWord?.chapter && currentWord.verse
+          ? `${visiblePosition.book} ${currentWord.chapter}:${currentWord.verse}`
+          : position ? `${position.parashaName ?? position.book} (word ${position.wordIndex + 1})` : 'No previous reading position',
+      })
+    } catch (err) {
+      event.preventDefault()
+      console.error('Failed to preserve reading position:', err)
+      setSyncError('Could not preserve your reading position. Please try again.')
+    }
+  }
+
+  const returnToReading = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    try {
+      writePracticeSession(inPractice && practiceSession ? { ...practiceSession, phase: 'returning' } : null)
+    } catch (err) {
+      event.preventDefault()
+      console.error('Failed to restore reading position:', err)
+      setSyncError('Could not restore your reading position. Please try again.')
+    }
+  }
+
+  const continueHere = () => {
+    const position = currentPosition()
+    if (!position || loading || error || isRashiMode) return
+    try {
+      if (currentUser && profileReady) saveUserData(currentUser, { position })
+      else if (!currentUser) savePosition(position)
+      writePracticeSession(null)
+      latestPositionRef.current = position
+      setPracticeSession(null)
+    } catch (err) {
+      console.error('Failed to save reading position:', err)
+      setSyncError('Could not save your reading position. Please try again.')
+    }
+  }
 
   const handleRashiWordClick = useCallback((index: number) => {
     setRashiCurrentWordIndex(index)
@@ -567,14 +641,14 @@ export default function App() {
           <h1 className={styles.title}>Leining App</h1>
           {!isBookmarksPage && (
             <button type="button" className={styles.bookmarkStar} disabled={!bookmarksReady || !activeBookmark || isRashiMode || loading || !!error}
-              aria-label={isBookmarked ? 'הסר סימניית פסוק' : 'סמן פסוק לתרגול'} aria-pressed={isBookmarked}
-              title={isBookmarked ? 'הסר סימניית פסוק' : 'סמן פסוק לתרגול'}
+              aria-label={isBookmarked ? 'Remove verse from favorites' : 'Add verse to favorites'} aria-pressed={isBookmarked}
+              title={isBookmarked ? 'Remove verse from favorites' : 'Add verse to favorites'}
               onClick={() => { if (activeBookmark) setBookmark(activeBookmark, !isBookmarked) }}>
               {isBookmarked ? '★' : '☆'}
             </button>
           )}
-          <a className={styles.bookmarksLink} href={isBookmarksPage ? '/' : '/bookmarks'}>
-            {isBookmarksPage ? 'חזרה לקריאה' : 'פסוקים ★'}
+          <a className={styles.bookmarksLink} href={isBookmarksPage ? '/' : '/bookmarks'} onClick={isBookmarksPage ? returnToReading : openFavorites}>
+            {isBookmarksPage ? 'Return to reading' : 'Favorites ★'}
           </a>
           <a
             href="https://myshiurim.com"
@@ -589,7 +663,7 @@ export default function App() {
           {currentUser ? (
             <div className={styles.userInfo}>
               <span className={styles.userName}>👤 {getUserName()}</span>
-              <button className={styles.authBtn} onClick={handleLogout}>יציאה</button>
+              <button className={styles.authBtn} onClick={handleLogout}>Sign out</button>
             </div>
           ) : (
             <button className={styles.authBtn} disabled={!authReady} onClick={() => {
@@ -598,7 +672,7 @@ export default function App() {
                 setSyncError(err instanceof Error ? err.message : String(err))
               })
             }}>
-              👤 כניסה עם Pocket ID
+              👤 Sign in with Pocket ID
             </button>
           )}
           <label className={styles.themeToggle}>
@@ -618,11 +692,21 @@ export default function App() {
           aria-controls={isBookmarksPage ? 'header-options' : 'header-options navigation-options'}
           onClick={() => setMobileHeaderExpanded((expanded) => !expanded)}
         >
-          {mobileHeaderExpanded ? 'סגור הגדרות ▲' : 'הגדרות ▼'}
+          {mobileHeaderExpanded ? 'Close settings ▲' : 'Settings ▼'}
         </button>
       </header>
 
-      {syncError && <div className={styles.syncError} role="alert">שגיאת התחברות או סנכרון: {syncError} <button onClick={() => window.location.reload()}>נסה שוב</button></div>}
+      {syncError && <div className={styles.syncError} role="alert">Sign-in or sync error: {syncError} <button onClick={() => window.location.reload()}>Retry</button></div>}
+      {inPractice && practiceSession && (
+        <div className={styles.practiceBanner} role="status">
+          <span><strong>Favorites practice</strong> · Return to: {practiceSession.originLabel}</span>
+          <div className={styles.practiceActions}>
+            {!isBookmarksPage && <a href="/bookmarks">Favorites</a>}
+            <a href="/" onClick={returnToReading}>Return to reading</a>
+            {!isBookmarksPage && <button type="button" onClick={continueHere} disabled={!currentPosition() || loading || !!error || isRashiMode}>Continue here</button>}
+          </div>
+        </div>
+      )}
       {authReady && (!currentUser || profileReady) && <div className={styles.workspace}>
       {isBookmarksPage ? (
         <BookmarksPage bookmarks={bookmarks} ready={bookmarksReady} loadFailed={bookmarksLoadFailed} onRemove={(bookmark) => setBookmark(bookmark, false)} />
@@ -673,7 +757,7 @@ export default function App() {
 
       <div className={`${styles.main} ${!useRashiFont ? styles.noSidebar : ''}`}>
         <div className={styles.textArea}>
-          {loading && <div className={styles.loading}>טוען...</div>}
+          {loading && <div className={styles.loading}>Loading...</div>}
           {error && <div className={styles.error}>{error}</div>}
           {!loading && !error && (
             isSeferTorahMode ? (
@@ -715,12 +799,12 @@ export default function App() {
                   revealAllTaamim={revealAllTaamim}
                   prevNav={hasPrevChapter ? (
                     <button className={styles.chapterNavBtn} onClick={handlePrevChapter}>
-                      ◀ פרק קודם
+                      ◀ Previous chapter
                     </button>
                   ) : undefined}
                   nextNav={hasNextChapter ? (
                     <button className={styles.chapterNavBtn} onClick={handleNextChapter}>
-                      פרק הבא ▶
+                      Next chapter ▶
                     </button>
                   ) : undefined}
                 />

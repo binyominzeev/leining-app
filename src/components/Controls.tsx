@@ -44,8 +44,8 @@ export default function Controls({ isPlaying, speed, wordCount, currentWordIndex
       <button
         className={styles.playBtn}
         onClick={isPlaying ? onPause : onPlay}
-        aria-label={isPlaying ? 'עצור' : 'נגן'}
-        title={isPlaying ? 'עצור (Space)' : 'נגן (Space)'}
+        aria-label={isPlaying ? 'Pause' : 'Play'}
+        title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
       >
         {isPlaying ? '⏸' : '▶'}
       </button>
@@ -54,7 +54,7 @@ export default function Controls({ isPlaying, speed, wordCount, currentWordIndex
           <span
             className={styles.timeDisplay}
             onClick={() => setShowRemaining((prev) => !prev)}
-            title={showRemaining ? 'הצג זמן שעבר' : 'הצג זמן נותר'}
+            title={showRemaining ? 'Show elapsed time' : 'Show remaining time'}
           >
             {timeLabel}
           </span>

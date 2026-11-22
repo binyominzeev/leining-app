@@ -69,7 +69,7 @@ export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick
   const fontStyle: CSSProperties & { '--sefer-font-scale': number } = { '--sefer-font-scale': fontScale / 100 }
 
   if (words.length === 0) {
-    return <div className={styles.empty}>בחר קטע לקריאה</div>
+    return <div className={styles.empty}>Select a passage to read</div>
   }
 
   return (
@@ -87,7 +87,7 @@ export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick
           }
           if (word.breakType === 'aliyah') {
             return (
-              <span key={word.index} className={styles.aliyahMarker}>
+              <span key={word.index} className={styles.aliyahMarker} dir="ltr">
                 {word.aliyahLabel}
               </span>
             )
@@ -102,6 +102,7 @@ export default function SeferTorahDisplay({ words, currentWordIndex, onWordClick
           return (
             <Fragment key={word.index}>
               <span
+                lang="he"
                 ref={isActive ? activeRef : undefined}
                 className={[styles.word, isActive ? styles.active : '', isPast ? styles.past : '', highlightedWords.has(wordKey) ? styles.highlighted : ''].filter(Boolean).join(' ')}
                 onMouseEnter={(event) => {
